@@ -59,6 +59,6 @@ export async function buildConfiguredApp() {
     paymentProvider,
     paymentProvider ? orderRepository : undefined,
     pricingService,
-    database ? () => database.ready() : undefined,
+    database?.pool,
   );
 }

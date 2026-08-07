@@ -26,7 +26,7 @@ export async function buildApp(
   paymentProvider?: PaymentProvider,
   orderRepository?: OrderRepository,
   pricingService?: PricingService,
-  databaseHealthCheck?: () => Promise<void>,
+  database?: { query(queryText: string): Promise<unknown> },
 ) {
   const app = Fastify({
     logger: { redact: ['req.headers.authorization', 'req.body.sender', 'req.body.recipient'] },
@@ -64,20 +64,37 @@ export async function buildApp(
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Click2Ship-Dev-Token'],
   });
 
-  app.get('/api/health', async (_request, reply) => {
-    if (!databaseHealthCheck) return { status: 'ok' };
+  app.get('/api/health', async (request, reply) => {
+    if (!database) return { status: 'ok' };
     try {
-      await databaseHealthCheck();
+      await database.query('SELECT 1');
       return { status: 'ok', database: 'connected' };
     } catch (error) {
-      app.log.error(
+      const databaseError = safeDatabaseError(error);
+      console.error('DATABASE_HEALTH_CHECK_FAILED', {
+        name: databaseError.name,
+        message: databaseError.message,
+        code: databaseError.code,
+        detail: databaseError.detail,
+        hint: databaseError.hint,
+        cause: databaseError.cause,
+        stack: databaseError.stack,
+      });
+      request.log.error(
         {
           err: error,
-          databaseError: safeDatabaseError(error),
+          code: databaseError.code,
+          detail: databaseError.detail,
+          hint: databaseError.hint,
         },
-        'Database health check failed',
+        'DATABASE_HEALTH_CHECK_FAILED',
       );
-      return reply.code(503).send({ status: 'error', database: 'unavailable' });
+      return reply.code(503).send({
+        status: 'error',
+        database: 'unavailable',
+        databaseErrorCode: databaseError.code ?? 'UNKNOWN_DATABASE_ERROR',
+        databaseErrorMessage: databaseError.message,
+      });
     }
   });
   app.get('/', async () => ({ name: 'Click2Ship Backend', status: 'running' }));

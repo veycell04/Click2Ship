@@ -104,6 +104,7 @@ describe('Click2Ship backend', () => {
   });
 
   it('reports database readiness and returns 503 when the database is unavailable', async () => {
+    let executedQuery = '';
     const connected = await buildApp(
       config,
       new FakeProvider(),
@@ -111,11 +112,16 @@ describe('Click2Ship backend', () => {
       undefined,
       undefined,
       undefined,
-      async () => undefined,
+      {
+        query: async (queryText) => {
+          executedQuery = queryText;
+        },
+      },
     );
     const connectedResponse = await connected.inject({ method: 'GET', url: '/api/health' });
     expect(connectedResponse.statusCode).toBe(200);
     expect(connectedResponse.json()).toEqual({ status: 'ok', database: 'connected' });
+    expect(executedQuery).toBe('SELECT 1');
     await connected.close();
 
     const unavailable = await buildApp(
@@ -125,11 +131,20 @@ describe('Click2Ship backend', () => {
       undefined,
       undefined,
       undefined,
-      async () => Promise.reject(new Error('offline')),
+      {
+        query: async () => {
+          throw Object.assign(new Error('offline'), { code: 'ECONNREFUSED' });
+        },
+      },
     );
     const unavailableResponse = await unavailable.inject({ method: 'GET', url: '/api/health' });
     expect(unavailableResponse.statusCode).toBe(503);
-    expect(unavailableResponse.json()).toEqual({ status: 'error', database: 'unavailable' });
+    expect(unavailableResponse.json()).toEqual({
+      status: 'error',
+      database: 'unavailable',
+      databaseErrorCode: 'ECONNREFUSED',
+      databaseErrorMessage: 'offline',
+    });
     await unavailable.close();
   });
 

@@ -16,7 +16,9 @@ interface DatabaseErrorLike extends Error {
 }
 
 const redactConnectionUri = (value: string): string =>
-  value.replace(/\b(?:postgres(?:ql)?):\/\/[^\s]+/gi, '[REDACTED_DATABASE_URL]');
+  value
+    .replace(/\b(?:postgres(?:ql)?):\/\/[^\s]+/gi, '[REDACTED_DATABASE_URL]')
+    .replace(/\b(user|role)\s+"[^"]+"/gi, '$1 "[REDACTED]"');
 
 const safeCause = (cause: unknown): unknown => {
   if (cause instanceof Error) {
