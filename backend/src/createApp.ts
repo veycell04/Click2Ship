@@ -17,6 +17,7 @@ import {
 import { RateProviderError } from './services/rateProvider.js';
 import type { PaymentProvider } from './types/payments.js';
 import type { ShippingProvider } from './types/shipping.js';
+import { safeDatabaseError } from './services/postgresRepositories.js';
 
 export async function buildApp(
   config: BackendConfig,
@@ -69,7 +70,13 @@ export async function buildApp(
       await databaseHealthCheck();
       return { status: 'ok', database: 'connected' };
     } catch (error) {
-      app.log.error({ error }, 'Database health check failed');
+      app.log.error(
+        {
+          err: error,
+          databaseError: safeDatabaseError(error),
+        },
+        'Database health check failed',
+      );
       return reply.code(503).send({ status: 'error', database: 'unavailable' });
     }
   });

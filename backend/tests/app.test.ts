@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildApp } from '../src/createApp.js';
 import { ShippingProviderError } from '../src/providers/shipAirShippingProvider.js';
 import { InMemoryLabelRepository } from '../src/services/labelRepository.js';
+import { safeDatabaseError } from '../src/services/postgresRepositories.js';
 import type { CreateLabelInput, CreatedLabel, ShippingProvider } from '../src/types/shipping.js';
 
 const label: CreatedLabel = {
@@ -72,6 +73,28 @@ const config = {
 };
 
 describe('Click2Ship backend', () => {
+  it('serializes PostgreSQL diagnostics without exposing connection credentials', () => {
+    const error = Object.assign(
+      new Error('connect failed for postgresql://user:password@db.example.com/click2ship'),
+      {
+        code: '28P01',
+        severity: 'FATAL',
+        detail: 'Authentication failed.',
+        hint: 'Check the configured credential.',
+        routine: 'auth_failed',
+        cause: new Error('postgres://other:secret@db.example.com/database'),
+      },
+    );
+
+    const diagnostic = safeDatabaseError(error);
+    const serialized = JSON.stringify(diagnostic);
+    expect(diagnostic.code).toBe('28P01');
+    expect(diagnostic.severity).toBe('FATAL');
+    expect(serialized).not.toContain('password');
+    expect(serialized).not.toContain('secret');
+    expect(serialized).not.toContain('db.example.com');
+  });
+
   it('exposes a production status document at the root route', async () => {
     const app = await buildApp(config, new FakeProvider(), new InMemoryLabelRepository());
     const response = await app.inject({ method: 'GET', url: '/' });

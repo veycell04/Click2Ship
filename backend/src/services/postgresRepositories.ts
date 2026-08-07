@@ -5,16 +5,83 @@ import type { PricingQuoteRepository, StoredPricingQuote } from './pricingServic
 import type { OrderRecord, OrderStatus } from '../types/payments.js';
 import type { CreatedLabel } from '../types/shipping.js';
 
+interface DatabaseErrorLike extends Error {
+  code?: string;
+  severity?: string;
+  detail?: string;
+  hint?: string;
+  position?: string;
+  routine?: string;
+  cause?: unknown;
+}
+
+const redactConnectionUri = (value: string): string =>
+  value.replace(/\b(?:postgres(?:ql)?):\/\/[^\s]+/gi, '[REDACTED_DATABASE_URL]');
+
+const safeCause = (cause: unknown): unknown => {
+  if (cause instanceof Error) {
+    const error = cause as DatabaseErrorLike;
+    return {
+      name: error.name,
+      message: redactConnectionUri(error.message),
+      code: error.code,
+    };
+  }
+  if (typeof cause === 'string') return redactConnectionUri(cause);
+  if (cause === null || cause === undefined) return cause;
+  return { type: typeof cause === 'object' ? cause.constructor?.name ?? 'Object' : typeof cause };
+};
+
+export function safeDatabaseError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return { name: 'UnknownDatabaseError', message: redactConnectionUri(String(error)) };
+  }
+
+  const databaseError = error as DatabaseErrorLike;
+  return {
+    name: databaseError.name,
+    message: redactConnectionUri(databaseError.message),
+    code: databaseError.code,
+    cause: safeCause(databaseError.cause),
+    stack: databaseError.stack ? redactConnectionUri(databaseError.stack) : undefined,
+    severity: databaseError.severity,
+    detail: databaseError.detail ? redactConnectionUri(databaseError.detail) : undefined,
+    hint: databaseError.hint ? redactConnectionUri(databaseError.hint) : undefined,
+    position: databaseError.position,
+    routine: databaseError.routine,
+  };
+}
+
 export class Click2ShipPostgres {
   readonly pool: Pool;
+  readonly connectionMetadata: {
+    databaseUrlConfigured: boolean;
+    protocol: string;
+    sslConfigured: boolean;
+    pooledConnection: boolean | null;
+  };
 
   constructor(connectionString: string) {
+    const parsedUrl = new URL(connectionString);
+    const isLocal = ['localhost', '127.0.0.1'].includes(parsedUrl.hostname);
+    const sslConfigured = !isLocal;
+    const pooledConnection = /pool(?:er|ing)?/i.test(parsedUrl.hostname)
+      ? true
+      : parsedUrl.searchParams.has('pgbouncer')
+        ? parsedUrl.searchParams.get('pgbouncer') !== 'false'
+        : null;
+
+    this.connectionMetadata = {
+      databaseUrlConfigured: Boolean(connectionString),
+      protocol: parsedUrl.protocol.replace(':', ''),
+      sslConfigured,
+      pooledConnection,
+    };
+    console.info('PostgreSQL connection configuration', this.connectionMetadata);
+
     this.pool = new Pool({
       connectionString,
-      ssl:
-        connectionString.includes('localhost') || connectionString.includes('127.0.0.1')
-          ? undefined
-          : { rejectUnauthorized: false },
+      ssl: sslConfigured ? { rejectUnauthorized: false } : undefined,
       max: 5,
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 5_000,
@@ -22,7 +89,15 @@ export class Click2ShipPostgres {
   }
 
   async ready(): Promise<void> {
-    await this.pool.query('SELECT 1');
+    try {
+      await this.pool.query('SELECT 1');
+    } catch (error) {
+      console.error('PostgreSQL SELECT 1 failed', {
+        connection: this.connectionMetadata,
+        error: safeDatabaseError(error),
+      });
+      throw error;
+    }
   }
 }
 
