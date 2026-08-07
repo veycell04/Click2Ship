@@ -72,6 +72,36 @@ const config = {
 };
 
 describe('Click2Ship backend', () => {
+  it('reports database readiness and returns 503 when the database is unavailable', async () => {
+    const connected = await buildApp(
+      config,
+      new FakeProvider(),
+      new InMemoryLabelRepository(),
+      undefined,
+      undefined,
+      undefined,
+      async () => undefined,
+    );
+    const connectedResponse = await connected.inject({ method: 'GET', url: '/api/health' });
+    expect(connectedResponse.statusCode).toBe(200);
+    expect(connectedResponse.json()).toEqual({ status: 'ok', database: 'connected' });
+    await connected.close();
+
+    const unavailable = await buildApp(
+      config,
+      new FakeProvider(),
+      new InMemoryLabelRepository(),
+      undefined,
+      undefined,
+      undefined,
+      async () => Promise.reject(new Error('offline')),
+    );
+    const unavailableResponse = await unavailable.inject({ method: 'GET', url: '/api/health' });
+    expect(unavailableResponse.statusCode).toBe(503);
+    expect(unavailableResponse.json()).toEqual({ status: 'error', database: 'unavailable' });
+    await unavailable.close();
+  });
+
   it('accepts the configured Chrome extension CORS origin and normalizes label types', async () => {
     const app = await buildApp(config, new FakeProvider(), new InMemoryLabelRepository());
     const response = await app.inject({

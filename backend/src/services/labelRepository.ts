@@ -3,6 +3,7 @@ import type { CreatedLabel } from '../types/shipping.js';
 export type LabelStatus = 'processing' | 'completed' | 'failed' | 'unknown';
 export interface LabelRecord {
   selectionId: string;
+  orderId?: string;
   providerLabelId?: string;
   trackingNumber?: string;
   labelTypeId?: number;
@@ -16,7 +17,7 @@ export interface LabelRepository {
   findBySelectionId(selectionId: string): Promise<LabelRecord | null>;
   findByLabelId(labelId: string): Promise<LabelRecord | null>;
   claimProcessing(selectionId: string): Promise<LabelRecord | null>;
-  markCompleted(selectionId: string, label: CreatedLabel): Promise<void>;
+  markCompleted(selectionId: string, label: CreatedLabel, orderId?: string): Promise<void>;
   markFailed(selectionId: string, errorCode: string, unknown?: boolean): Promise<void>;
 }
 

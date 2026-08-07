@@ -6,7 +6,7 @@ import { StripeCheckoutPaymentProvider } from './providers/stripeCheckoutPayment
 import { InMemoryLabelRepository } from './services/labelRepository.js';
 import { InMemoryOrderRepository } from './services/orderRepository.js';
 import {
-  Click2ShipPostgres,
+  getClick2ShipPostgres,
   PostgresLabelRepository,
   PostgresOrderRepository,
   PostgresPricingQuoteRepository,
@@ -36,7 +36,7 @@ export async function buildConfiguredApp() {
           process.env.STRIPE_WEBHOOK_SECRET!,
         )
       : undefined;
-  const database = config.databaseUrl ? new Click2ShipPostgres(config.databaseUrl) : null;
+  const database = config.databaseUrl ? getClick2ShipPostgres(config.databaseUrl) : null;
   const quoteRepository = database
     ? new PostgresPricingQuoteRepository(database)
     : new InMemoryPricingQuoteRepository();
@@ -59,5 +59,6 @@ export async function buildConfiguredApp() {
     paymentProvider,
     paymentProvider ? orderRepository : undefined,
     pricingService,
+    database ? () => database.ready() : undefined,
   );
 }

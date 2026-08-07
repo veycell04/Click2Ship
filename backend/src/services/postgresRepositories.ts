@@ -5,59 +5,73 @@ import type { PricingQuoteRepository, StoredPricingQuote } from './pricingServic
 import type { OrderRecord, OrderStatus } from '../types/payments.js';
 import type { CreatedLabel } from '../types/shipping.js';
 
-const schema = `
-CREATE TABLE IF NOT EXISTS click2ship_quotes (
-  quote_id text PRIMARY KEY,
-  selection_id text NOT NULL UNIQUE,
-  document jsonb NOT NULL,
-  expires_at timestamptz NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE TABLE IF NOT EXISTS click2ship_orders (
-  order_id text PRIMARY KEY,
-  selection_id text NOT NULL UNIQUE,
-  document jsonb NOT NULL,
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE TABLE IF NOT EXISTS click2ship_labels (
-  selection_id text PRIMARY KEY,
-  provider_label_id text UNIQUE,
-  document jsonb NOT NULL,
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-`;
-
 export class Click2ShipPostgres {
   readonly pool: Pool;
-  private initialized: Promise<void> | null = null;
 
   constructor(connectionString: string) {
     this.pool = new Pool({
       connectionString,
-      ssl: connectionString.includes('localhost') || connectionString.includes('127.0.0.1')
-        ? undefined
-        : { rejectUnauthorized: false },
+      ssl:
+        connectionString.includes('localhost') || connectionString.includes('127.0.0.1')
+          ? undefined
+          : { rejectUnauthorized: false },
       max: 5,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 5_000,
     });
   }
 
-  ready(): Promise<void> {
-    this.initialized ??= this.pool.query(schema).then(() => undefined);
-    return this.initialized;
+  async ready(): Promise<void> {
+    await this.pool.query('SELECT 1');
   }
+}
+
+let sharedDatabase: Click2ShipPostgres | null = null;
+let sharedConnectionString = '';
+
+export function getClick2ShipPostgres(connectionString: string): Click2ShipPostgres {
+  if (!sharedDatabase || sharedConnectionString !== connectionString) {
+    sharedDatabase = new Click2ShipPostgres(connectionString);
+    sharedConnectionString = connectionString;
+  }
+  return sharedDatabase;
 }
 
 export class PostgresPricingQuoteRepository implements PricingQuoteRepository {
   constructor(private readonly database: Click2ShipPostgres) {}
+
   async save(quote: StoredPricingQuote): Promise<void> {
-    await this.database.ready();
     const client = await this.database.pool.connect();
     try {
       await client.query('BEGIN');
-      await client.query('DELETE FROM click2ship_quotes WHERE selection_id = $1', [quote.input.selectionId]);
       await client.query(
-        'INSERT INTO click2ship_quotes (quote_id, selection_id, document, expires_at) VALUES ($1, $2, $3::jsonb, $4)',
-        [quote.quoteId, quote.input.selectionId, JSON.stringify(quote), quote.expiresAt],
+        `INSERT INTO quotes (
+          id, selection_id, easy_post_shipment_id, easy_post_rate_id, carrier,
+          service_code, service_name, ship_air_label_type_id, reference_price_cents,
+          customer_price_cents, savings_cents, savings_percent, currency,
+          shipment_snapshot, document, expires_at
+        ) VALUES (
+          $1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+          $14::jsonb, $15::jsonb, $16
+        )`,
+        [
+          quote.quoteId,
+          quote.input.selectionId,
+          quote.easyPostShipmentId,
+          quote.easyPostRateId,
+          quote.carrier,
+          quote.serviceCode,
+          quote.serviceName,
+          quote.shipAirLabelTypeId,
+          quote.referencePriceCents,
+          quote.customerPriceCents,
+          quote.savingsCents,
+          quote.savingsPercent,
+          quote.currency,
+          JSON.stringify(quote.shipmentSnapshot),
+          JSON.stringify(quote),
+          quote.expiresAt,
+        ],
       );
       await client.query('COMMIT');
     } catch (error) {
@@ -67,10 +81,11 @@ export class PostgresPricingQuoteRepository implements PricingQuoteRepository {
       client.release();
     }
   }
+
   async findById(quoteId: string): Promise<StoredPricingQuote | null> {
-    await this.database.ready();
     const result = await this.database.pool.query<{ document: StoredPricingQuote }>(
-      'SELECT document FROM click2ship_quotes WHERE quote_id = $1', [quoteId],
+      'SELECT document FROM quotes WHERE id = $1::uuid',
+      [quoteId],
     );
     return result.rows[0]?.document ?? null;
   }
@@ -78,77 +93,114 @@ export class PostgresPricingQuoteRepository implements PricingQuoteRepository {
 
 const orderFrom = async (client: PoolClient, id: string): Promise<OrderRecord | null> => {
   const result = await client.query<{ document: OrderRecord }>(
-    'SELECT document FROM click2ship_orders WHERE order_id = $1', [id],
+    'SELECT document FROM orders WHERE id = $1::uuid FOR UPDATE',
+    [id],
   );
   return result.rows[0]?.document ?? null;
 };
 
 export class PostgresOrderRepository implements OrderRepository {
   constructor(private readonly database: Click2ShipPostgres) {}
+
   private async update(id: string, changes: Partial<OrderRecord>): Promise<OrderRecord | null> {
-    await this.database.ready();
     const current = await this.findById(id);
     if (!current) return null;
     const next = { ...current, ...changes, updatedAt: new Date().toISOString() };
     const result = await this.database.pool.query<{ document: OrderRecord }>(
-      'UPDATE click2ship_orders SET document = $2::jsonb, updated_at = now() WHERE order_id = $1 RETURNING document',
-      [id, JSON.stringify(next)],
+      `UPDATE orders SET
+        status = $2, stripe_checkout_session_id = NULLIF($3, ''),
+        stripe_payment_intent_id = NULLIF($4, ''), provider_label_id = NULLIF($5, ''),
+        tracking_number = NULLIF($6, ''), error_message = NULLIF($7, ''),
+        document = $8::jsonb, updated_at = $9
+       WHERE id = $1::uuid RETURNING document`,
+      [
+        id,
+        next.status,
+        next.stripeCheckoutSessionId,
+        next.stripePaymentIntentId,
+        next.providerLabelId,
+        next.trackingNumber,
+        next.errorMessage,
+        JSON.stringify(next),
+        next.updatedAt,
+      ],
     );
     return result.rows[0]?.document ?? null;
   }
+
   async findById(id: string) {
-    await this.database.ready();
     const result = await this.database.pool.query<{ document: OrderRecord }>(
-      'SELECT document FROM click2ship_orders WHERE order_id = $1', [id],
+      'SELECT document FROM orders WHERE id = $1::uuid',
+      [id],
     );
     return result.rows[0]?.document ?? null;
   }
+
   async findBySelectionId(selectionId: string) {
-    await this.database.ready();
     const result = await this.database.pool.query<{ document: OrderRecord }>(
-      'SELECT document FROM click2ship_orders WHERE selection_id = $1', [selectionId],
+      'SELECT document FROM orders WHERE selection_id = $1::uuid',
+      [selectionId],
     );
     return result.rows[0]?.document ?? null;
   }
+
   async create(order: OrderRecord) {
-    await this.database.ready();
     const result = await this.database.pool.query<{ document: OrderRecord }>(
-      `INSERT INTO click2ship_orders (order_id, selection_id, document)
-       VALUES ($1, $2, $3::jsonb)
-       ON CONFLICT (selection_id) DO UPDATE SET selection_id = EXCLUDED.selection_id
-       RETURNING document`,
-      [order.id, order.selectionId, JSON.stringify(order)],
+      `INSERT INTO orders (
+        id, quote_id, selection_id, status, amount_cents, currency, shipment_snapshot,
+        document, created_at, updated_at
+      ) VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5, $6, $7::jsonb, $8::jsonb, $9, $10)
+      ON CONFLICT (selection_id) DO UPDATE SET selection_id = EXCLUDED.selection_id
+      RETURNING document`,
+      [
+        order.id,
+        order.quoteId,
+        order.selectionId,
+        order.status,
+        order.amountCents,
+        order.currency,
+        JSON.stringify(order.shipmentSnapshot),
+        JSON.stringify(order),
+        order.createdAt,
+        order.updatedAt,
+      ],
     );
     return result.rows[0]?.document ?? order;
   }
+
   async updateCheckout(id: string, sessionId: string, url: string) {
-    const order = await this.update(id, { stripeCheckoutSessionId: sessionId, stripeCheckoutUrl: url, status: 'payment_pending' });
+    const order = await this.update(id, {
+      stripeCheckoutSessionId: sessionId,
+      stripeCheckoutUrl: url,
+      status: 'payment_pending',
+    });
     if (!order) throw new Error('Order not found.');
     return order;
   }
+
   markPaid(id: string, paymentIntentId: string) {
     return this.update(id, { status: 'paid', stripePaymentIntentId: paymentIntentId });
   }
+
   async claimLabelProcessing(id: string) {
-    await this.database.ready();
     const client = await this.database.pool.connect();
     try {
       await client.query('BEGIN');
       const current = await orderFrom(client, id);
-      if (!current || current.status === 'label_processing' || current.status === 'label_created') {
+      if (!current || ['label_processing', 'label_created', 'label_failed'].includes(current.status)) {
         await client.query('ROLLBACK');
         return null;
       }
-      const next = { ...current, status: 'label_processing' as const, updatedAt: new Date().toISOString() };
-      const claimed = await client.query(
-        `UPDATE click2ship_orders SET document = $2::jsonb, updated_at = now()
-         WHERE order_id = $1 AND document->>'status' NOT IN ('label_processing', 'label_created')`,
-        [id, JSON.stringify(next)],
+      const next = {
+        ...current,
+        status: 'label_processing' as const,
+        updatedAt: new Date().toISOString(),
+      };
+      await client.query(
+        `UPDATE orders SET status = 'label_processing', document = $2::jsonb, updated_at = $3
+         WHERE id = $1::uuid`,
+        [id, JSON.stringify(next), next.updatedAt],
       );
-      if (claimed.rowCount !== 1) {
-        await client.query('ROLLBACK');
-        return null;
-      }
       await client.query('COMMIT');
       return next;
     } catch (error) {
@@ -158,53 +210,90 @@ export class PostgresOrderRepository implements OrderRepository {
       client.release();
     }
   }
+
   markLabelCreated(id: string, label: CreatedLabel) {
-    return this.update(id, { status: 'label_created', providerLabelId: label.id, trackingNumber: label.trackingNumber, label, errorMessage: '' });
+    return this.update(id, {
+      status: 'label_created',
+      providerLabelId: label.id,
+      trackingNumber: label.trackingNumber,
+      label,
+      errorMessage: '',
+    });
   }
   markLabelFailed(id: string, message: string) {
     return this.update(id, { status: 'label_failed', errorMessage: message });
   }
-  updateStatus(id: string, status: OrderStatus) { return this.update(id, { status }); }
+  updateStatus(id: string, status: OrderStatus) {
+    return this.update(id, { status });
+  }
 }
 
 export class PostgresLabelRepository implements LabelRepository {
   constructor(private readonly database: Click2ShipPostgres) {}
+
   async findBySelectionId(selectionId: string) {
-    await this.database.ready();
-    const result = await this.database.pool.query<{ document: LabelRecord }>('SELECT document FROM click2ship_labels WHERE selection_id = $1', [selectionId]);
+    const result = await this.database.pool.query<{ document: LabelRecord }>(
+      'SELECT document FROM labels WHERE selection_id = $1::uuid',
+      [selectionId],
+    );
     return result.rows[0]?.document ?? null;
   }
+
   async findByLabelId(labelId: string) {
-    await this.database.ready();
-    const result = await this.database.pool.query<{ document: LabelRecord }>('SELECT document FROM click2ship_labels WHERE provider_label_id = $1', [labelId]);
+    const result = await this.database.pool.query<{ document: LabelRecord }>(
+      'SELECT document FROM labels WHERE provider_label_id = $1',
+      [labelId],
+    );
     return result.rows[0]?.document ?? null;
   }
+
   async claimProcessing(selectionId: string) {
-    await this.database.ready();
-    const record: LabelRecord = { selectionId, status: 'processing', createdAt: new Date().toISOString(), label: null };
+    const record: LabelRecord = {
+      selectionId,
+      status: 'processing',
+      createdAt: new Date().toISOString(),
+      label: null,
+    };
     const result = await this.database.pool.query(
-      `INSERT INTO click2ship_labels (selection_id, document) VALUES ($1, $2::jsonb)
-       ON CONFLICT (selection_id) DO NOTHING RETURNING selection_id`,
-      [selectionId, JSON.stringify(record)],
+      `INSERT INTO labels (id, selection_id, provider, status, document, created_at)
+       VALUES ($1::uuid, $2::uuid, 'shipair', 'processing', $3::jsonb, $4)
+       ON CONFLICT (selection_id) DO NOTHING RETURNING id`,
+      [crypto.randomUUID(), selectionId, JSON.stringify(record), record.createdAt],
     );
     return result.rowCount === 1 ? null : this.findBySelectionId(selectionId);
   }
-  async markCompleted(selectionId: string, label: CreatedLabel) {
-    const record: LabelRecord = { selectionId, providerLabelId: label.id, trackingNumber: label.trackingNumber, labelTypeId: label.labelTypeId, reference: label.reference, status: 'completed', createdAt: label.createdAt, label };
-    await this.database.ready();
+
+  async markCompleted(selectionId: string, label: CreatedLabel, orderId?: string) {
+    const record: LabelRecord = {
+      selectionId,
+      orderId,
+      providerLabelId: label.id,
+      trackingNumber: label.trackingNumber,
+      labelTypeId: label.labelTypeId,
+      reference: label.reference,
+      status: 'completed',
+      createdAt: label.createdAt,
+      label,
+    };
     await this.database.pool.query(
-      `INSERT INTO click2ship_labels (selection_id, provider_label_id, document) VALUES ($1, $2, $3::jsonb)
-       ON CONFLICT (selection_id) DO UPDATE SET provider_label_id = EXCLUDED.provider_label_id, document = EXCLUDED.document, updated_at = now()`,
-      [selectionId, label.id, JSON.stringify(record)],
+      `UPDATE labels SET order_id = $2::uuid, provider_label_id = $3, tracking_number = $4,
+       label_type_id = $5, reference = $6, status = 'completed', document = $7::jsonb
+       WHERE selection_id = $1::uuid`,
+      [selectionId, orderId ?? null, label.id, label.trackingNumber, label.labelTypeId, label.reference, JSON.stringify(record)],
     );
   }
+
   async markFailed(selectionId: string, errorCode: string, unknown = false) {
-    const record: LabelRecord = { selectionId, status: unknown ? 'unknown' : 'failed', createdAt: new Date().toISOString(), label: null, errorCode };
-    await this.database.ready();
+    const record: LabelRecord = {
+      selectionId,
+      status: unknown ? 'unknown' : 'failed',
+      createdAt: new Date().toISOString(),
+      label: null,
+      errorCode,
+    };
     await this.database.pool.query(
-      `INSERT INTO click2ship_labels (selection_id, document) VALUES ($1, $2::jsonb)
-       ON CONFLICT (selection_id) DO UPDATE SET document = EXCLUDED.document, updated_at = now()`,
-      [selectionId, JSON.stringify(record)],
+      `UPDATE labels SET status = $2, document = $3::jsonb WHERE selection_id = $1::uuid`,
+      [selectionId, record.status, JSON.stringify(record)],
     );
   }
 }

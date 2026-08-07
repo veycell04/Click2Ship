@@ -25,6 +25,7 @@ export async function buildApp(
   paymentProvider?: PaymentProvider,
   orderRepository?: OrderRepository,
   pricingService?: PricingService,
+  databaseHealthCheck?: () => Promise<void>,
 ) {
   const app = Fastify({
     logger: { redact: ['req.headers.authorization', 'req.body.sender', 'req.body.recipient'] },
@@ -62,7 +63,16 @@ export async function buildApp(
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Click2Ship-Dev-Token'],
   });
 
-  app.get('/api/health', async () => ({ status: 'ok' }));
+  app.get('/api/health', async (_request, reply) => {
+    if (!databaseHealthCheck) return { status: 'ok' };
+    try {
+      await databaseHealthCheck();
+      return { status: 'ok', database: 'connected' };
+    } catch (error) {
+      app.log.error({ error }, 'Database health check failed');
+      return reply.code(503).send({ status: 'error', database: 'unavailable' });
+    }
+  });
   app.get('/payment/success', async (_request, reply) =>
     reply.type('text/html').send('<h1>Payment received</h1><p>You may return to Click2Ship.</p>'),
   );
@@ -291,7 +301,7 @@ export async function buildApp(
             downloadUrl: `/api/shipping/labels/${encodeURIComponent(providerLabel.id)}/download`,
             reference: claimed.shipmentSnapshot.reference,
           };
-          await repository.markCompleted(claimed.selectionId, label);
+          await repository.markCompleted(claimed.selectionId, label, orderId);
           await orderRepository.markLabelCreated(orderId, label);
         } catch (error) {
           await orderRepository.markLabelFailed(
