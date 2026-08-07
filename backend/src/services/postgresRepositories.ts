@@ -81,8 +81,18 @@ export class Click2ShipPostgres {
     };
     console.info('PostgreSQL connection configuration', this.connectionMetadata);
 
+    // node-postgres parses sslmode and certificate parameters from the connection string after
+    // reading the Pool SSL option. Remove those parameters from this private URL copy so they
+    // cannot replace the explicit SSL object below. rejectUnauthorized:false is deliberately
+    // scoped only to the managed Supabase PostgreSQL TLS connection; global TLS verification
+    // remains enabled for ShipAir, EasyPost, Stripe, and every other HTTPS connection.
+    const poolUrl = new URL(parsedUrl);
+    for (const parameter of ['sslmode', 'sslcert', 'sslkey', 'sslrootcert']) {
+      poolUrl.searchParams.delete(parameter);
+    }
+
     this.pool = new Pool({
-      connectionString,
+      connectionString: poolUrl.toString(),
       ssl: sslConfigured ? { rejectUnauthorized: false } : undefined,
       max: 5,
       idleTimeoutMillis: 30_000,
