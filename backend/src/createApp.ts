@@ -73,6 +73,7 @@ export async function buildApp(
       return reply.code(503).send({ status: 'error', database: 'unavailable' });
     }
   });
+  app.get('/', async () => ({ name: 'Click2Ship Backend', status: 'running' }));
   app.get('/payment/success', async (_request, reply) =>
     reply.type('text/html').send('<h1>Payment received</h1><p>You may return to Click2Ship.</p>'),
   );

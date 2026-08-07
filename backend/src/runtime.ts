@@ -1,4 +1,4 @@
-import { buildApp } from './app.js';
+import { buildApp } from './createApp.js';
 import { assertBackendConfig, loadConfig } from './config/env.js';
 import { EasyPostRateProvider } from './providers/easyPostRateProvider.js';
 import { ShipAirShippingProvider } from './providers/shipAirShippingProvider.js';

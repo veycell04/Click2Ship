@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildApp } from '../src/app.js';
+import { buildApp } from '../src/createApp.js';
 import { ShippingProviderError } from '../src/providers/shipAirShippingProvider.js';
 import { InMemoryLabelRepository } from '../src/services/labelRepository.js';
 import type { CreateLabelInput, CreatedLabel, ShippingProvider } from '../src/types/shipping.js';
@@ -72,6 +72,14 @@ const config = {
 };
 
 describe('Click2Ship backend', () => {
+  it('exposes a production status document at the root route', async () => {
+    const app = await buildApp(config, new FakeProvider(), new InMemoryLabelRepository());
+    const response = await app.inject({ method: 'GET', url: '/' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ name: 'Click2Ship Backend', status: 'running' });
+    await app.close();
+  });
+
   it('reports database readiness and returns 503 when the database is unavailable', async () => {
     const connected = await buildApp(
       config,

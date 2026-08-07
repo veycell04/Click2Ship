@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildApp } from '../src/app.js';
+import { buildApp } from '../src/createApp.js';
 import { InMemoryLabelRepository } from '../src/services/labelRepository.js';
 import { InMemoryOrderRepository } from '../src/services/orderRepository.js';
 import {
