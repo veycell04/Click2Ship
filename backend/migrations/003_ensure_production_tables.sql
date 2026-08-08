@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
 );
 
 CREATE INDEX IF NOT EXISTS orders_status_idx ON public.orders (status);
+CREATE INDEX IF NOT EXISTS orders_quote_id_idx ON public.orders (quote_id);
 
 CREATE TABLE IF NOT EXISTS public.labels (
   id uuid PRIMARY KEY,

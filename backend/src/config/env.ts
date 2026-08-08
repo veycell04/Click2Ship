@@ -48,13 +48,12 @@ export function assertBackendConfig(config: BackendConfig): void {
   if (!config.shipAirApiKey) throw new Error('SHIPAIR_API_KEY is missing. Add it to backend/.env.');
   if (!config.extensionId)
     throw new Error('CLICK2SHIP_EXTENSION_ID is missing. Add it to backend/.env.');
-  if (Boolean(config.stripeSecretKey) !== Boolean(config.stripeWebhookSecret)) {
-    throw new Error(
-      'STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET must either both be configured or both be omitted.',
-    );
-  }
-  if (config.stripeSecretKey && !config.stripeSecretKey.startsWith('sk_test_')) {
-    throw new Error('STRIPE_SECRET_KEY must be a Stripe test secret key beginning with sk_test_.');
+  if (
+    config.stripeSecretKey &&
+    !config.stripeSecretKey.startsWith('sk_test_') &&
+    !config.stripeSecretKey.startsWith('sk_live_')
+  ) {
+    throw new Error('STRIPE_SECRET_KEY must be a Stripe secret key beginning with sk_test_ or sk_live_.');
   }
   if (!config.easyPostApiKey)
     throw new Error('EASYPOST_API_KEY is missing. Add it to backend/.env.');

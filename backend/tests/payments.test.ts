@@ -190,13 +190,63 @@ describe('payment checkout and fulfillment', () => {
       payload: { quoteId: quote.quoteId, amountCents: 1 },
     });
     expect(response.statusCode).toBe(200);
-    expect(response.json().price).toMatchObject({ customerPriceCents: 792 });
+    expect(response.json()).toMatchObject({
+      success: true,
+      checkoutSessionId: 'cs_test_1',
+      checkoutUrl: 'https://checkout.stripe.com/test',
+    });
     expect(payment.lastAmountCents).toBe(792);
     expect(payment.lastCheckoutInput).toMatchObject({
       quoteId: quote.quoteId,
       selectionId: shipment.selectionId,
       serviceName: 'USPS Priority Mail',
       currency: 'usd',
+    });
+    await app.close();
+  });
+
+  it('returns 422 when quoteId is missing and 404 when the quote is unknown', async () => {
+    const { app } = await setup();
+    const missing = await app.inject({
+      method: 'POST',
+      url: '/api/payments/checkout',
+      payload: {},
+    });
+    expect(missing.statusCode).toBe(422);
+    expect(missing.json().error).toBe('VALIDATION_ERROR');
+
+    const unknown = await app.inject({
+      method: 'POST',
+      url: '/api/payments/checkout',
+      payload: { quoteId: crypto.randomUUID() },
+    });
+    expect(unknown.statusCode).toBe(404);
+    expect(unknown.json().error).toBe('QUOTE_NOT_FOUND');
+    await app.close();
+  });
+
+  it('registers checkout and returns 503 when Stripe is not configured', async () => {
+    const app = await buildApp(
+      { ...config, stripeSecretKey: '', stripeWebhookSecret: '' },
+      new FakeShipping(),
+      new InMemoryLabelRepository(),
+      undefined,
+      new InMemoryOrderRepository(),
+      new LiveEasyPostPricingService(
+        { getRates: async () => [] } satisfies RateProvider,
+        new InMemoryPricingQuoteRepository(),
+      ),
+    );
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/payments/checkout',
+      payload: { quoteId: crypto.randomUUID() },
+    });
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      success: false,
+      error: 'PAYMENTS_NOT_CONFIGURED',
+      message: 'Stripe payments are not configured.',
     });
     await app.close();
   });

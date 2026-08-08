@@ -202,15 +202,51 @@ export async function buildApp(
     });
   }
 
-  if (paymentProvider && orderRepository && pricingService) {
-    app.post('/api/payments/checkout', async (request) => {
+  if (orderRepository && pricingService) {
+    app.post('/api/payments/checkout', async (request, reply) => {
+      if (!paymentProvider) {
+        return reply.code(503).send({
+          success: false,
+          error: 'PAYMENTS_NOT_CONFIGURED',
+          message: 'Stripe payments are not configured.',
+        });
+      }
       const body = request.body as Record<string, unknown>;
       const quoteId = typeof body?.quoteId === 'string' ? body.quoteId : '';
-      if (!quoteId) throw new RequestValidationError('quoteId', 'A pricing quote is required.');
+      if (!quoteId) {
+        return reply.code(422).send({
+          success: false,
+          error: 'VALIDATION_ERROR',
+          message: 'A pricing quote is required.',
+          fieldErrors: { quoteId: 'A pricing quote is required.' },
+        });
+      }
       const quote = await pricingService.getStoredQuote(quoteId);
-      if (!quote) throw new RequestValidationError('quoteId', 'Pricing quote was not found.');
+      if (!quote) {
+        return reply.code(404).send({
+          success: false,
+          error: 'QUOTE_NOT_FOUND',
+          message: 'Pricing quote was not found.',
+        });
+      }
       if (new Date(quote.expiresAt).getTime() <= Date.now()) {
-        throw new RequestValidationError('quoteId', 'Pricing quote has expired.');
+        return reply.code(422).send({
+          success: false,
+          error: 'QUOTE_EXPIRED',
+          message: 'Pricing quote has expired.',
+        });
+      }
+      if (
+        !Number.isInteger(quote.customerPriceCents) ||
+        quote.customerPriceCents <= 0 ||
+        !quote.currency ||
+        !quote.shipmentSnapshot
+      ) {
+        return reply.code(422).send({
+          success: false,
+          error: 'INVALID_QUOTE',
+          message: 'The stored pricing quote is incomplete.',
+        });
       }
       const shipment = quote.shipmentSnapshot;
       const selectionId = shipment.selectionId;
@@ -241,7 +277,7 @@ export async function buildApp(
           id: crypto.randomUUID(),
           selectionId,
           quoteId,
-          status: 'draft',
+          status: 'checkout_created',
           amountCents: quote.customerPriceCents,
           currency: quote.currency,
           stripeCheckoutSessionId: '',
@@ -271,7 +307,6 @@ export async function buildApp(
         orderId: order.id,
         checkoutSessionId: checkout.id,
         checkoutUrl: checkout.url,
-        price: quote,
       };
     });
 
@@ -297,7 +332,7 @@ export async function buildApp(
       },
     );
 
-    await app.register(async (webhookApp) => {
+    if (paymentProvider && config.stripeWebhookSecret) await app.register(async (webhookApp) => {
       webhookApp.removeContentTypeParser('application/json');
       webhookApp.addContentTypeParser(
         'application/json',

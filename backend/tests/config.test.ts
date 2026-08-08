@@ -53,8 +53,20 @@ describe('backend environment validation', () => {
     });
 
     expect(() => assertBackendConfig(config)).toThrow(
-      'STRIPE_SECRET_KEY must be a Stripe test secret key beginning with sk_test_.',
+      'STRIPE_SECRET_KEY must be a Stripe secret key beginning with sk_test_ or sk_live_.',
     );
+    log.mockRestore();
+  });
+
+  it('allows a Stripe secret key without requiring webhook configuration at startup', () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const config = loadConfig({
+      SHIPAIR_API_KEY: 'shipair-key',
+      CLICK2SHIP_EXTENSION_ID: 'extension-id',
+      EASYPOST_API_KEY: 'EZTKtest',
+      STRIPE_SECRET_KEY: 'sk_live_example',
+    });
+    expect(() => assertBackendConfig(config)).not.toThrow();
     log.mockRestore();
   });
 });

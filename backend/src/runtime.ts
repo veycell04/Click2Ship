@@ -30,10 +30,10 @@ export async function buildConfiguredApp() {
     config.shipAirApiKey,
   );
   const paymentProvider =
-    config.stripeSecretKey && config.stripeWebhookSecret
+    config.stripeSecretKey
       ? new StripeCheckoutPaymentProvider(
-          process.env.STRIPE_SECRET_KEY!,
-          process.env.STRIPE_WEBHOOK_SECRET!,
+          config.stripeSecretKey,
+          config.stripeWebhookSecret,
         )
       : undefined;
   const database = config.databaseUrl ? getClick2ShipPostgres(config.databaseUrl) : null;
@@ -57,7 +57,7 @@ export async function buildConfiguredApp() {
     shippingProvider,
     labelRepository,
     paymentProvider,
-    paymentProvider ? orderRepository : undefined,
+    orderRepository,
     pricingService,
     database?.pool,
   );
