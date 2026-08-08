@@ -332,7 +332,7 @@ export async function buildApp(
       },
     );
 
-    if (paymentProvider && config.stripeWebhookSecret) await app.register(async (webhookApp) => {
+    await app.register(async (webhookApp) => {
       webhookApp.removeContentTypeParser('application/json');
       webhookApp.addContentTypeParser(
         'application/json',
@@ -340,6 +340,12 @@ export async function buildApp(
         (_request, body, done) => done(null, body),
       );
       webhookApp.post('/api/webhooks/stripe', async (request, reply) => {
+        if (!paymentProvider || !config.stripeWebhookSecret) {
+          return reply.code(503).send({
+            success: false,
+            error: 'PAYMENTS_NOT_CONFIGURED',
+          });
+        }
         const signature = request.headers['stripe-signature'];
         if (typeof signature !== 'string')
           return reply.code(400).send({ error: 'Missing Stripe signature.' });
@@ -348,6 +354,32 @@ export async function buildApp(
           event = paymentProvider.verifyWebhook(request.body as Buffer, signature);
         } catch {
           return reply.code(400).send({ error: 'Invalid Stripe signature.' });
+        }
+        if (event.type === 'checkout.session.expired') {
+          const orderId = event.metadata.orderId;
+          if (orderId) {
+            const order = await orderRepository.findById(orderId);
+            if (
+              order &&
+              ['draft', 'checkout_created', 'payment_pending'].includes(order.status)
+            ) {
+              await orderRepository.updateStatus(orderId, 'payment_failed');
+            }
+          }
+          return { received: true };
+        }
+        if (event.type === 'payment_intent.payment_failed') {
+          const orderId = event.metadata.orderId;
+          if (orderId) {
+            const order = await orderRepository.findById(orderId);
+            if (
+              order &&
+              ['draft', 'checkout_created', 'payment_pending'].includes(order.status)
+            ) {
+              await orderRepository.updateStatus(orderId, 'payment_failed');
+            }
+          }
+          return { received: true };
         }
         if (event.type !== 'checkout.session.completed' || event.paymentStatus !== 'paid') {
           return { received: true };

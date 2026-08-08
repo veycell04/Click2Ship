@@ -40,6 +40,7 @@ export interface PaidCheckoutEvent {
   paymentStatus: string;
   paymentIntentId: string;
   metadata: Record<string, string>;
+  failureMessage?: string;
 }
 
 export interface PaymentProvider {

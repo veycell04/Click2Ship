@@ -47,29 +47,47 @@ export class StripeCheckoutPaymentProvider implements PaymentProvider {
 
   verifyWebhook(rawBody: Buffer, signature: string): PaidCheckoutEvent {
     const event = this.stripe.webhooks.constructEvent(rawBody, signature, this.webhookSecret);
-    if (event.type !== 'checkout.session.completed') {
+    if (
+      event.type === 'checkout.session.completed' ||
+      event.type === 'checkout.session.expired'
+    ) {
+      const session = event.data.object;
+      return {
+        type: event.type,
+        sessionId: session.id,
+        paymentStatus: session.payment_status,
+        paymentIntentId:
+          typeof session.payment_intent === 'string'
+            ? session.payment_intent
+            : session.payment_intent?.id || '',
+        metadata: Object.fromEntries(
+          Object.entries(session.metadata ?? {}).filter(
+            (entry): entry is [string, string] => typeof entry[1] === 'string',
+          ),
+        ),
+      };
+    }
+    if (event.type === 'payment_intent.payment_failed') {
+      const paymentIntent = event.data.object;
       return {
         type: event.type,
         sessionId: '',
-        paymentStatus: '',
-        paymentIntentId: '',
-        metadata: {},
+        paymentStatus: 'failed',
+        paymentIntentId: paymentIntent.id,
+        metadata: Object.fromEntries(
+          Object.entries(paymentIntent.metadata ?? {}).filter(
+            (entry): entry is [string, string] => typeof entry[1] === 'string',
+          ),
+        ),
+        failureMessage: paymentIntent.last_payment_error?.message ?? 'Stripe payment failed.',
       };
     }
-    const session = event.data.object;
     return {
       type: event.type,
-      sessionId: session.id,
-      paymentStatus: session.payment_status,
-      paymentIntentId:
-        typeof session.payment_intent === 'string'
-          ? session.payment_intent
-          : session.payment_intent?.id || '',
-      metadata: Object.fromEntries(
-        Object.entries(session.metadata ?? {}).filter(
-          (entry): entry is [string, string] => typeof entry[1] === 'string',
-        ),
-      ),
+      sessionId: '',
+      paymentStatus: '',
+      paymentIntentId: '',
+      metadata: {},
     };
   }
 }

@@ -248,6 +248,14 @@ describe('payment checkout and fulfillment', () => {
       error: 'PAYMENTS_NOT_CONFIGURED',
       message: 'Stripe payments are not configured.',
     });
+    const webhook = await app.inject({
+      method: 'POST',
+      url: '/api/webhooks/stripe',
+      headers: { 'stripe-signature': 'test', 'content-type': 'application/json' },
+      payload: '{}',
+    });
+    expect(webhook.statusCode).toBe(503);
+    expect(webhook.json().error).toBe('PAYMENTS_NOT_CONFIGURED');
     await app.close();
   });
 
@@ -289,6 +297,47 @@ describe('payment checkout and fulfillment', () => {
     expect(response.statusCode).toBe(400);
     await app.close();
   });
+
+  it('rejects a missing Stripe signature', async () => {
+    const { app } = await setup();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/webhooks/stripe',
+      headers: { 'content-type': 'application/json' },
+      payload: '{}',
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error).toBe('Missing Stripe signature.');
+    await app.close();
+  });
+
+  it.each(['checkout.session.expired', 'payment_intent.payment_failed'])(
+    'marks an unpaid order payment_failed for %s',
+    async (eventType) => {
+      const { app, payment } = await setup();
+      const quote = await createQuote(app);
+      const checkout = await app.inject({
+        method: 'POST',
+        url: '/api/payments/checkout',
+        payload: { quoteId: quote.quoteId },
+      });
+      payment.event.type = eventType;
+      payment.event.paymentStatus = 'failed';
+      const webhook = await app.inject({
+        method: 'POST',
+        url: '/api/webhooks/stripe',
+        headers: { 'stripe-signature': 'valid', 'content-type': 'application/json' },
+        payload: '{}',
+      });
+      expect(webhook.statusCode).toBe(200);
+      const status = await app.inject({
+        method: 'GET',
+        url: `/api/orders/${checkout.json().orderId}/status`,
+      });
+      expect(status.json().order.status).toBe('payment_failed');
+      await app.close();
+    },
+  );
 
   it('does not create a label for an unpaid Checkout Session', async () => {
     const { app, payment, shipping } = await setup();
