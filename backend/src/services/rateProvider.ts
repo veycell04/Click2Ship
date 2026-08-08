@@ -15,7 +15,8 @@ export interface ReferenceRate {
   carrier: 'USPS';
   serviceCode: string;
   serviceName: string;
-  retailPriceCents: number;
+  retailPriceCents: number | null;
+  retailRate?: string | null;
   deliveryDays: number | null;
   deliveryDate: string | null;
   guaranteed: boolean;

@@ -58,7 +58,17 @@ export interface PricingService {
 }
 
 export class UnsupportedPricingServiceError extends Error {}
-export class PricingRateUnavailableError extends Error {}
+export class PricingRateUnavailableError extends Error {
+  constructor(message: string, readonly availableServices: string[]) {
+    super(message);
+  }
+}
+export class RetailRateUnavailableError extends Error {}
+export class QuotePersistenceError extends Error {
+  constructor(readonly diagnostic: unknown) {
+    super('The shipping rate was calculated, but the quote could not be saved.');
+  }
+}
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
@@ -74,37 +84,51 @@ export class LiveEasyPostPricingService implements PricingService {
   }
 
   async getQuote(input: PricingQuoteInput): Promise<PricingQuote> {
+    console.log('PRICING_STAGE_START', { selectedLabelTypeId: input.labelTypeId });
     const mapping = getShippingServiceMapping(input.labelTypeId);
     if (!mapping) {
       throw new UnsupportedPricingServiceError('Pricing is not yet available for this label type.');
     }
     const rates = await this.rateProvider.getRates(input);
-    const rate = rates.find(
-      (candidate) =>
-        candidate.carrier === mapping.carrier &&
-        candidate.serviceCode === mapping.easyPostService,
+    console.log('SERVICE_MATCH_START', {
+      selectedLabelTypeId: input.labelTypeId,
+      mapping,
+    });
+    const uspsRates = rates.filter((candidate) => candidate.carrier === 'USPS');
+    const rate = uspsRates.find(
+      (candidate) => candidate.serviceCode === mapping.easyPostService,
     );
-    if (process.env.NODE_ENV !== 'production') {
-      console.log({
-        selectedShipAirLabelTypeId: input.labelTypeId,
-        resolvedMapping: mapping,
-        availableEasyPostRates: rates.map((candidate) => ({
-          carrier: candidate.carrier,
-          service: candidate.serviceCode,
-          retail_rate: (candidate.retailPriceCents / 100).toFixed(2),
-        })),
-        matchedRate: rate ?? null,
-      });
-    }
+    console.log('SERVICE_MATCH_RESULT', {
+      selectedShipAirLabelTypeId: input.labelTypeId,
+      resolvedMapping: mapping,
+      availableEasyPostRates: uspsRates.map((candidate) => ({
+        carrier: candidate.carrier,
+        service: candidate.serviceCode,
+        retail_rate: candidate.retailRate,
+      })),
+      matchedRate: rate ?? null,
+    });
     if (!rate) {
       throw new PricingRateUnavailableError(
-        `${mapping.displayName} rate is unavailable for this shipment.`,
+        'The selected USPS service is unavailable for this shipment.',
+        uspsRates.map((candidate) => candidate.serviceCode),
+      );
+    }
+    if (rate.retailPriceCents === null || !Number.isFinite(rate.retailPriceCents)) {
+      throw new RetailRateUnavailableError(
+        'EasyPost did not return a USPS retail reference rate for this service.',
       );
     }
     const customerPriceCents = Math.round(
       (rate.retailPriceCents * (100 - this.discountPercent)) / 100,
     );
     const savingsCents = rate.retailPriceCents - customerPriceCents;
+    console.log('QUOTE_CALCULATION_COMPLETE', {
+      retailRate: rate.retailRate ?? money(rate.retailPriceCents),
+      referencePriceCents: rate.retailPriceCents,
+      customerPriceCents,
+      savingsCents,
+    });
     const publicQuote: PricingQuote = {
       quoteId: crypto.randomUUID(),
       carrier: 'USPS',
@@ -126,13 +150,28 @@ export class LiveEasyPostPricingService implements PricingService {
       pricingMode: 'live',
       expiresAt: new Date(Date.now() + 10 * 60 * 1_000).toISOString(),
     };
-    await this.repository.save({
-      ...publicQuote,
-      input: structuredClone(input),
-      shipmentSnapshot: { ...structuredClone(input), reference: `Click2Ship-${input.selectionId}` },
-      shipAirCostCents: null,
-      grossSpreadCents: null,
-    });
+    try {
+      console.log('QUOTE_DATABASE_INSERT_START', { quoteId: publicQuote.quoteId });
+      await this.repository.save({
+        ...publicQuote,
+        input: structuredClone(input),
+        shipmentSnapshot: { ...structuredClone(input), reference: `Click2Ship-${input.selectionId}` },
+        shipAirCostCents: null,
+        grossSpreadCents: null,
+      });
+      console.log('QUOTE_DATABASE_INSERT_COMPLETE', { quoteId: publicQuote.quoteId });
+    } catch (error) {
+      const candidate = error as Error & { code?: string; detail?: string };
+      const diagnostic = {
+        name: candidate?.name,
+        message: candidate?.message,
+        code: candidate?.code,
+        detail: candidate?.detail,
+        stack: candidate?.stack,
+      };
+      console.error('QUOTE_DATABASE_INSERT_FAILED', diagnostic);
+      throw new QuotePersistenceError(diagnostic);
+    }
     return publicQuote;
   }
 

@@ -11,6 +11,8 @@ import type { LabelRepository } from './services/labelRepository.js';
 import type { OrderRepository } from './services/orderRepository.js';
 import {
   PricingRateUnavailableError,
+  QuotePersistenceError,
+  RetailRateUnavailableError,
   UnsupportedPricingServiceError,
   type PricingService,
 } from './services/pricingService.js';
@@ -163,7 +165,23 @@ export async function buildApp(
         if (error instanceof PricingRateUnavailableError) {
           return reply.code(422).send({
             success: false,
-            error: 'SELECTED_SERVICE_UNAVAILABLE',
+            error: 'SERVICE_RATE_UNAVAILABLE',
+            message: error.message,
+            availableServices: error.availableServices,
+          });
+        }
+        if (error instanceof RetailRateUnavailableError) {
+          return reply.code(422).send({
+            success: false,
+            error: 'RETAIL_RATE_UNAVAILABLE',
+            message: error.message,
+          });
+        }
+        if (error instanceof QuotePersistenceError) {
+          request.log.error({ diagnostic: error.diagnostic }, 'QUOTE_DATABASE_INSERT_FAILED');
+          return reply.code(500).send({
+            success: false,
+            error: 'QUOTE_PERSISTENCE_FAILED',
             message: error.message,
           });
         }
@@ -174,8 +192,8 @@ export async function buildApp(
           );
           return reply.code(error.statusCode).send({
             success: false,
-            error: error.code,
-            message: 'Unable to retrieve the current USPS retail rate.',
+            error: 'EASYPOST_ERROR',
+            message: error.message,
             ...(config.nodeEnv === 'development' ? { diagnostic: error.diagnostic } : {}),
           });
         }

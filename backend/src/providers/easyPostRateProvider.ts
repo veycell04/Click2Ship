@@ -55,12 +55,25 @@ export class EasyPostRateProvider implements RateProvider {
         height: input.height,
       },
     };
+    console.log('EASYPOST_REQUEST_START');
     try {
       const shipment = await this.shipmentClient.create(parameters);
+      console.log('EASYPOST_RESPONSE_RECEIVED', {
+        shipmentId: shipment.id,
+        rateCount: shipment.rates?.length ?? 0,
+        rates: shipment.rates?.map((rate) => ({
+          id: rate.id,
+          carrier: rate.carrier,
+          service: rate.service,
+          rate: rate.rate,
+          retailRate: rate.retail_rate,
+          listRate: rate.list_rate,
+          deliveryDays: rate.delivery_days,
+        })),
+      });
       return (shipment.rates ?? []).flatMap((rate): ReferenceRate[] => {
         if (rate.carrier !== 'USPS') return [];
         const retailPriceCents = cents(rate.retail_rate);
-        if (retailPriceCents === null || retailPriceCents <= 0) return [];
         return [
           {
             providerShipmentId: shipment.id,
@@ -68,7 +81,9 @@ export class EasyPostRateProvider implements RateProvider {
             carrier: 'USPS',
             serviceCode: rate.service,
             serviceName: rate.service,
-            retailPriceCents,
+            retailPriceCents:
+              retailPriceCents !== null && retailPriceCents > 0 ? retailPriceCents : null,
+            retailRate: rate.retail_rate,
             deliveryDays: Number.isInteger(rate.delivery_days) ? rate.delivery_days : null,
             deliveryDate: rate.delivery_date || null,
             guaranteed: rate.delivery_date_guaranteed === true,
@@ -79,6 +94,11 @@ export class EasyPostRateProvider implements RateProvider {
       if (error instanceof RateProviderError) throw error;
       const status = normalizedStatus(error);
       const message = status === 401 ? 'EasyPost API key is invalid.' : status === 422 ? 'EasyPost rejected the address or parcel.' : status === 504 ? 'EasyPost rating timed out.' : 'Unable to retrieve the current USPS retail rate.';
+      console.error('EASYPOST_REQUEST_FAILED', {
+        name: error instanceof Error ? error.name : 'Error',
+        message,
+        statusCode: status,
+      });
       throw new RateProviderError(message, status, status === 504 ? 'EASYPOST_TIMEOUT' : `EASYPOST_${status}`, {
         name: error instanceof Error ? error.name : 'Error',
         message: error instanceof Error ? error.message : String(error),

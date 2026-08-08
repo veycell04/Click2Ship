@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   InMemoryPricingQuoteRepository,
   LiveEasyPostPricingService,
+  QuotePersistenceError,
+  RetailRateUnavailableError,
   UnsupportedPricingServiceError,
 } from '../src/services/pricingService.js';
 import type { RateProvider, ReferenceRate } from '../src/services/rateProvider.js';
@@ -65,7 +67,22 @@ describe('EasyPost USPS retail pricing', () => {
   it('returns a service-specific error when GroundAdvantage is absent', async () => {
     await expect(
       serviceFor([rate('Priority', 800)]).service.getQuote({ ...input, labelTypeId: 78 }),
-    ).rejects.toThrow('USPS Ground Advantage rate is unavailable for this shipment.');
+    ).rejects.toThrow('The selected USPS service is unavailable for this shipment.');
+  });
+
+  it('distinguishes a matched service with no retail reference rate', async () => {
+    await expect(
+      serviceFor([{ ...rate('Priority', 800), retailPriceCents: null }]).service.getQuote(input),
+    ).rejects.toBeInstanceOf(RetailRateUnavailableError);
+  });
+
+  it('identifies quote persistence failure after calculation succeeds', async () => {
+    const provider: RateProvider = { getRates: async () => [rate('Priority', 800)] };
+    const service = new LiveEasyPostPricingService(provider, {
+      save: async () => { throw Object.assign(new Error('insert failed'), { code: '42P01' }); },
+      findById: async () => null,
+    });
+    await expect(service.getQuote(input)).rejects.toBeInstanceOf(QuotePersistenceError);
   });
 
   it('recalculates Priority -> Ground Advantage -> Priority and clears each previous quote', async () => {
