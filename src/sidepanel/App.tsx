@@ -40,6 +40,8 @@ import { emptyShipmentSession, shipmentSessionReducer } from './shipmentSession'
 import { copyText, downloadPdf, openPdfForPrint } from './labelActions';
 import { createPricingInputKey, describePricingError, PricingRequestGate } from './pricingState';
 import { PriceCard } from './PriceCard';
+import { ShippingServiceSelect } from './ShippingServiceSelect';
+import { selectShippingService } from './shippingServiceOptions';
 import {
   getPricingRequirements,
   groupMissingPricingRequirements,
@@ -457,6 +459,9 @@ export function App() {
   const canRequestPricing = pricingReady && pricingInput.selectionId !== '';
   const pricingInputKey = createPricingInputKey(pricingInput);
   const currentPrice = pricingReady && quotedInputKey === pricingInputKey ? paymentPrice : null;
+  const shippingServiceOptions = currentPrice
+    ? [currentPrice.bestRate, ...currentPrice.alternatives]
+    : [];
   const displayedPricingStatus =
     pricingReady && paymentPrice !== null && quotedInputKey !== pricingInputKey
       ? 'loading'
@@ -981,6 +986,16 @@ export function App() {
               ))}
             </select>
           </label>
+          <ShippingServiceSelect
+            options={shippingServiceOptions}
+            selectedRateId={currentPrice?.rateId ?? ''}
+            status={displayedPricingStatus}
+            pricingReady={pricingReady}
+            onSelect={(option) => {
+              if (!paymentPrice) return;
+              setPaymentPrice(selectShippingService(paymentPrice, option));
+            }}
+          />
           <div className="dimensions">
             {(['weight', 'length', 'width', 'height'] as const).map((key) => (
               <label
@@ -1025,6 +1040,7 @@ export function App() {
           customerPrice={currentPrice?.customerDisplayAmount ?? ''}
           savings={currentPrice?.savingsDisplayAmount ?? ''}
           savingsPercent={currentPrice?.savingsPercent ?? 0}
+          deliveryDays={currentPrice?.deliveryDays ?? null}
           expiresAt={currentPrice?.expiresAt ?? ''}
           status={displayedPricingStatus}
           errorMessage={pricingError}
@@ -1033,17 +1049,6 @@ export function App() {
           pricingReady={pricingReady}
           missingRequirements={groupedMissingPricingRequirements}
           onRequirementClick={focusPricingRequirement}
-          options={currentPrice ? [currentPrice.bestRate, ...currentPrice.alternatives] : []}
-          selectedQuoteId={currentPrice?.quoteId ?? ''}
-          onSelect={(option) => {
-            if (!paymentPrice) return;
-            setPaymentPrice({
-              ...paymentPrice,
-              ...option,
-              referencePriceCents: option.benchmarkPriceCents,
-              referenceDisplayAmount: option.benchmarkDisplayAmount,
-            });
-          }}
         />
 
         <section className="card confirmations">

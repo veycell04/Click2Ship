@@ -35,6 +35,8 @@ export interface BackendConnectionDiagnostic {
 }
 export interface BackendRateOption {
   quoteId: string;
+  rateId: string;
+  shipmentId: string;
   carrier: 'USPS' | 'UPS' | 'FedEx';
   serviceCode: string;
   serviceName: string;

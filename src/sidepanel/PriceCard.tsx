@@ -9,6 +9,7 @@ export interface PriceCardProps {
   customerPrice: string;
   savings: string;
   savingsPercent: number;
+  deliveryDays: number | null;
   expiresAt: string;
   status: 'idle' | 'loading' | 'success' | 'error';
   errorMessage?: string;
@@ -28,6 +29,7 @@ export function PriceCard({
   customerPrice,
   savings,
   savingsPercent,
+  deliveryDays,
   expiresAt,
   status,
   errorMessage = '',
@@ -100,8 +102,11 @@ export function PriceCard({
       ) : (
         <div className="price-card-content">
           <div className="price-service">
-            <span>BEST PRICE</span>
+            <span>SELECTED SERVICE</span>
             <strong>{serviceName}</strong>
+            {deliveryDays !== null && (
+              <span>{deliveryDays === 1 ? 'Estimated delivery: 1 day' : `Estimated delivery: ${deliveryDays} days`}</span>
+            )}
             <span className={timeLabel === 'Quote expired' ? 'expired' : ''}>{timeLabel}</span>
           </div>
 

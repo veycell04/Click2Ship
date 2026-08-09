@@ -10,6 +10,7 @@ const quoteProps = {
   customerPrice: '$10.76',
   savings: '$2.69',
   savingsPercent: 20,
+  deliveryDays: 2,
   expiresAt: '2099-08-06T12:10:00.000Z',
   status: 'success' as const,
   onRetry: () => undefined,
@@ -30,6 +31,8 @@ describe('PriceCard', () => {
     expect(markup).toContain('You save');
     expect(markup).toContain('$2.69');
     expect(markup).toContain('20% less');
+    expect(markup).toContain('SELECTED SERVICE');
+    expect(markup).toContain('Estimated delivery: 2 days');
     expect(markup.match(/Calculated securely by ShipDime/g)).toHaveLength(1);
     expect(markup).not.toMatch(/EasyPost|ShipAir/i);
   });
@@ -46,7 +49,7 @@ describe('PriceCard', () => {
 
   it('allows an alternative carrier quote to be selected', () => {
     const onSelect = vi.fn();
-    const alternative = { quoteId: 'quote-ups', carrier: 'UPS' as const, serviceCode: 'Ground', serviceName: 'UPS Ground', benchmarkPriceCents: 915, benchmarkDisplayAmount: '$9.15', customerPriceCents: 732, customerDisplayAmount: '$7.32', savingsCents: 183, savingsDisplayAmount: '$1.83', savingsPercent: 20, deliveryDays: 3, deliveryDate: null, guaranteed: false };
+    const alternative = { quoteId: 'quote-ups', rateId: 'rate-ups', shipmentId: 'shp-1', carrier: 'UPS' as const, serviceCode: 'Ground', serviceName: 'UPS Ground', benchmarkPriceCents: 915, benchmarkDisplayAmount: '$9.15', customerPriceCents: 732, customerDisplayAmount: '$7.32', savingsCents: 183, savingsDisplayAmount: '$1.83', savingsPercent: 20, deliveryDays: 3, deliveryDate: null, guaranteed: false };
     const markup = renderToStaticMarkup(<PriceCard {...quoteProps} options={[alternative]} selectedQuoteId="" onSelect={onSelect} />);
     expect(markup).toContain('UPS Ground');
     expect(markup).toContain('$7.32');
