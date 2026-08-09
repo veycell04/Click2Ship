@@ -96,7 +96,7 @@ const config = {
   stripeSecretKey: 'sk_test',
   stripeWebhookSecret: 'whsec_test',
   publicBaseUrl: 'http://127.0.0.1:3001',
-  checkoutSuccessUrl: 'http://127.0.0.1:3001/payment/success',
+  checkoutSuccessUrl: 'http://127.0.0.1:3001/payment/success?session_id={CHECKOUT_SESSION_ID}',
   checkoutCancelUrl: 'http://127.0.0.1:3001/payment/cancel',
   easyPostApiKey: 'EZTKtest',
   discountPercent: 20,

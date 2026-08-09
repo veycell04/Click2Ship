@@ -101,10 +101,10 @@ export async function buildApp(
   });
   app.get('/', async () => ({ name: 'Click2Ship Backend', status: 'running' }));
   app.get('/payment/success', async (_request, reply) =>
-    reply.type('text/html').send('<h1>Payment received</h1><p>You may return to ShipDime.</p>'),
+    reply.type('text/html').send('<main><h1>ShipDime</h1><h2>Payment successful</h2><p>We\'re creating your shipping label.</p><p>You can return to the ShipDime extension.</p></main>'),
   );
   app.get('/payment/cancel', async (_request, reply) =>
-    reply.type('text/html').send('<h1>Checkout canceled</h1><p>No label was created.</p>'),
+    reply.type('text/html').send('<main><h1>ShipDime</h1><h2>Payment canceled</h2><p>No payment was completed.</p><p>You can return to the ShipDime extension and try again.</p></main>'),
   );
   app.get('/api/debug/origin', async (request) => ({
     receivedOrigin: request.headers.origin ?? null,

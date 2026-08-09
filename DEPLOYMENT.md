@@ -14,9 +14,7 @@ Set these Vercel environment variables for the backend project:
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `CLICK2SHIP_EXTENSION_ID`
-- `CLICK2SHIP_PUBLIC_BASE_URL`
-- `CLICK2SHIP_SUCCESS_URL`
-- `CLICK2SHIP_CANCEL_URL`
+- `PUBLIC_APP_URL=https://click2-ship.vercel.app`
 
 Apply migrations intentionally from a trusted workstation or deployment job:
 

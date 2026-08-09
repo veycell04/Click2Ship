@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { assertBackendConfig, loadConfig } from '../src/config/env.js';
+import { assertBackendConfig, loadConfig, paymentRedirectUrls } from '../src/config/env.js';
 
 describe('backend environment validation', () => {
   it('fails startup clearly when the ShipAir API key is missing', () => {
@@ -36,10 +36,37 @@ describe('backend environment validation', () => {
       EASYPOST_API_KEY: 'EZTKtest',
       STRIPE_SECRET_KEY: 'sk_test_example',
       STRIPE_WEBHOOK_SECRET: 'whsec_example',
+      PUBLIC_APP_URL: 'https://click2-ship.vercel.app',
     });
     expect(() => assertBackendConfig(config)).toThrow('DATABASE_URL is required in production.');
     log.mockRestore();
   });
+
+  it('builds local redirect URLs and preserves Stripe session placeholder', () => {
+    const config = loadConfig({ PUBLIC_APP_URL: 'http://127.0.0.1:3001/' });
+    expect(config.publicBaseUrl).toBe('http://127.0.0.1:3001');
+    expect(config.checkoutSuccessUrl).toBe('http://127.0.0.1:3001/payment/success?session_id={CHECKOUT_SESSION_ID}');
+    expect(config.checkoutCancelUrl).toBe('http://127.0.0.1:3001/payment/cancel');
+  });
+
+  it('builds production redirect URLs from PUBLIC_APP_URL', () => {
+    expect(paymentRedirectUrls('https://click2-ship.vercel.app/')).toEqual({
+      successUrl: 'https://click2-ship.vercel.app/payment/success?session_id={CHECKOUT_SESSION_ID}',
+      cancelUrl: 'https://click2-ship.vercel.app/payment/cancel',
+    });
+  });
+
+  it.each(['http://localhost:3001', 'http://127.0.0.1:3001', 'http://0.0.0.0:3001'])(
+    'rejects development redirect host %s in production',
+    (publicAppUrl) => {
+      const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+      const config = loadConfig({ NODE_ENV: 'production', PUBLIC_APP_URL: publicAppUrl,
+        SHIPAIR_API_KEY: 'shipair-key', CLICK2SHIP_EXTENSION_ID: 'extension-id',
+        EASYPOST_API_KEY: 'EZTKtest', DATABASE_URL: 'postgresql://configured' });
+      expect(() => assertBackendConfig(config)).toThrow('PUBLIC_APP_URL must be a public HTTPS URL in production');
+      log.mockRestore();
+    },
+  );
 
   it('rejects a Stripe publishable key in the backend secret-key setting', () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);

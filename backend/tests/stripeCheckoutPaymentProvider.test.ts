@@ -17,12 +17,14 @@ describe('StripeCheckoutPaymentProvider', () => {
       serviceName: 'USPS Priority Mail',
       amountCents: 640,
       currency: 'usd',
-      successUrl: 'https://example.com/payment/success',
-      cancelUrl: 'https://example.com/payment/cancel',
+      successUrl: 'https://click2-ship.vercel.app/payment/success?session_id={CHECKOUT_SESSION_ID}',
+      cancelUrl: 'https://click2-ship.vercel.app/payment/cancel',
     })).resolves.toEqual({ id: 'cs_test_1', url: 'https://checkout.stripe.com/test' });
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         mode: 'payment',
+        success_url: 'https://click2-ship.vercel.app/payment/success?session_id={CHECKOUT_SESSION_ID}',
+        cancel_url: 'https://click2-ship.vercel.app/payment/cancel',
         metadata: { orderId: 'order-1', quoteId: 'quote-1', selectionId: 'selection-1' },
         line_items: [{
           quantity: 1,
