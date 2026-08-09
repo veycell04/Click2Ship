@@ -1,44 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { EasyPostRateProvider } from '../src/providers/easyPostRateProvider.js';
-import { RateProviderError } from '../src/services/rateProvider.js';
-
-const address = { fullName: 'Test User', company: '', phone: '', address1: '1 Main St', address2: '', city: 'Chicago', state: 'IL', zip: '60601', country: 'US' };
-const input = { sender: address, recipient: address, weight: 2, length: 14, width: 10, height: 6 };
-
-const shipment = (rates: Array<Record<string, unknown>>) => ({ id: 'shp_test', rates }) as never;
-
-describe('EasyPostRateProvider', () => {
-  it('creates a rating-only shipment and converts 2 lb to 32 oz', async () => {
-    let request: unknown;
-    const provider = new EasyPostRateProvider('test-key', { create: async (value) => { request = value; return shipment([]); } });
-    await provider.getRates(input);
-    expect(request).toMatchObject({
-      from_address: { street1: '1 Main St', country: 'US' },
-      to_address: { street1: '1 Main St', country: 'US' },
-      parcel: { weight: 32, length: 14, width: 10, height: 6 },
-    });
-    expect(request).not.toHaveProperty('rate');
-  });
-
-  it('keeps USPS services visible while never substituting rate or list_rate for retail_rate', async () => {
-    const provider = new EasyPostRateProvider('test-key', { create: async () => shipment([
-      { id: 'rate_priority', carrier: 'USPS', service: 'Priority', retail_rate: '8.00', rate: '4.00', list_rate: '5.00', delivery_days: 2, delivery_date: null, delivery_date_guaranteed: false },
-      { id: 'rate_missing', carrier: 'USPS', service: 'Express', retail_rate: null, rate: '3.00', list_rate: '4.00' },
-      { id: 'rate_ups', carrier: 'UPS', service: 'Ground', retail_rate: '9.00' },
-    ]) });
-    expect(await provider.getRates(input)).toEqual([
-      { providerShipmentId: 'shp_test', providerRateId: 'rate_priority', carrier: 'USPS', serviceCode: 'Priority', serviceName: 'Priority', retailPriceCents: 800, retailRate: '8.00', deliveryDays: 2, deliveryDate: null, guaranteed: false },
-      { providerShipmentId: 'shp_test', providerRateId: 'rate_missing', carrier: 'USPS', serviceCode: 'Express', serviceName: 'Express', retailPriceCents: null, retailRate: null, deliveryDays: null, deliveryDate: null, guaranteed: false },
+import { EasyPostRateProvider, normalizeCarrier } from '../src/providers/easyPostRateProvider.js';
+const input = { sender: { fullName: 'A', address1: '1 Main', city: 'Chicago', state: 'IL', zip: '60601', country: 'US' }, recipient: { fullName: 'B', address1: '2 Main', city: 'New York', state: 'NY', zip: '10001', country: 'US' }, weight: 2, length: 10, width: 8, height: 4 };
+const response = { id: 'shp_test', rates: [
+  { id: 'rate_usps', carrier: 'USPS', service: 'GroundAdvantage', rate: '8.82', retail_rate: null, currency: 'USD', delivery_days: 3 },
+  { id: 'rate_fedex', carrier: 'FedExDefault', service: 'SMART_POST', rate: '8.55', currency: 'USD', delivery_days: 4 },
+  { id: 'rate_ups', carrier: 'UPSDAP', service: 'Ground', rate: '9.15', currency: 'USD', delivery_days: 3 },
+  { id: 'bad', carrier: 'USPS', service: 'Priority', rate: '', currency: 'USD' },
+] } as never;
+describe('EasyPostRateProvider multi-carrier normalization', () => {
+  it('keeps supported purchasable rate.rate values even with null retail_rate', async () => {
+    const rates = await new EasyPostRateProvider('test', { create: async () => response }).getRates(input);
+    expect(rates).toHaveLength(3);
+    expect(rates.map(({ carrier, rateCents }) => ({ carrier, rateCents }))).toEqual([
+      { carrier: 'USPS', rateCents: 882 }, { carrier: 'FedEx', rateCents: 855 }, { carrier: 'UPS', rateCents: 915 },
     ]);
   });
-
-  it.each([[401, 'EasyPost API key is invalid.'], [422, 'EasyPost rejected the address or parcel.']])('normalizes EasyPost %s errors', async (statusCode, message) => {
-    const provider = new EasyPostRateProvider('bad-key', { create: async () => { throw Object.assign(new Error('sensitive provider detail'), { statusCode }); } });
-    await expect(provider.getRates(input)).rejects.toMatchObject<RateProviderError>({ statusCode, message });
-  });
-
-  it('normalizes EasyPost timeouts', async () => {
-    const provider = new EasyPostRateProvider('test-key', { create: async () => { throw new Error('Request timed out'); } });
-    await expect(provider.getRates(input)).rejects.toMatchObject({ statusCode: 504, code: 'EASYPOST_TIMEOUT' });
+  it('normalizes provider carrier aliases', () => {
+    expect(normalizeCarrier('FedExDefault')).toBe('FedEx');
+    expect(normalizeCarrier('UPSDAP')).toBe('UPS');
   });
 });

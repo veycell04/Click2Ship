@@ -10,4 +10,12 @@ describe('production persistence migration', () => {
     expect(sql).toMatch(/labels[\s\S]*selection_id uuid NOT NULL UNIQUE/);
     expect(sql).toContain('shipment_snapshot jsonb NOT NULL');
   });
+
+  it('adds non-destructive multi-carrier quote and subsidy fields', async () => {
+    const sql = await readFile(new URL('../migrations/004_multi_carrier_quotes.sql', import.meta.url), 'utf8');
+    expect(sql).toContain('ADD COLUMN IF NOT EXISTS benchmark_price_cents');
+    expect(sql).toContain('ADD COLUMN IF NOT EXISTS selected_rate_snapshot');
+    expect(sql).toContain('ADD COLUMN IF NOT EXISTS gross_spread_cents');
+    expect(sql).not.toMatch(/DROP\s+TABLE/i);
+  });
 });

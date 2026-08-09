@@ -14,11 +14,9 @@ const validDraft = () => ({
 });
 
 describe('pricing readiness requirements', () => {
-  it('adds and removes the Label Type requirement', () => {
+  it('does not require a legacy provider label type for rate shopping', () => {
     const draft = validDraft();
     draft.selectedLabelTypeId = '';
-    expect(getPricingRequirements(draft).find((item) => item.key === 'service.labelType')?.valid).toBe(false);
-    draft.selectedLabelTypeId = '78';
     expect(getPricingRequirements(draft).every((item) => item.valid)).toBe(true);
   });
 

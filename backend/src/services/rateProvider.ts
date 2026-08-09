@@ -1,5 +1,7 @@
 import type { ShippingAddress } from '../types/shipping.js';
 
+export type SupportedCarrier = 'USPS' | 'UPS' | 'FedEx';
+
 export interface RateRequest {
   sender: ShippingAddress;
   recipient: ShippingAddress;
@@ -12,11 +14,12 @@ export interface RateRequest {
 export interface ReferenceRate {
   providerShipmentId: string;
   providerRateId: string;
-  carrier: 'USPS';
+  carrier: SupportedCarrier;
+  providerCarrier: string;
   serviceCode: string;
   serviceName: string;
-  retailPriceCents: number | null;
-  retailRate?: string | null;
+  rateCents: number;
+  currency: 'USD';
   deliveryDays: number | null;
   deliveryDate: string | null;
   guaranteed: boolean;

@@ -33,25 +33,29 @@ export interface BackendConnectionDiagnostic {
   backgroundFetchStatus: number | null;
   error: string;
 }
-export interface BackendPriceQuote {
+export interface BackendRateOption {
   quoteId: string;
-  carrier: 'USPS';
+  carrier: 'USPS' | 'UPS' | 'FedEx';
   serviceCode: string;
   serviceName: string;
-  easyPostShipmentId: string;
-  easyPostRateId: string;
-  labelTypeId: number;
-  referencePriceType: 'EASYPOST_USPS_RETAIL';
-  referencePriceCents: number;
-  referenceDisplayAmount: string;
+  benchmarkPriceCents: number;
+  benchmarkDisplayAmount: string;
   customerPriceCents: number;
   customerDisplayAmount: string;
   savingsCents: number;
   savingsDisplayAmount: string;
   savingsPercent: number;
+  deliveryDays: number | null;
+  deliveryDate: string | null;
+  guaranteed: boolean;
+}
+export interface BackendPriceQuote extends BackendRateOption {
+  bestRate: BackendRateOption;
+  alternatives: BackendRateOption[];
+  referencePriceCents: number;
+  referenceDisplayAmount: string;
   currency: string;
   pricingMode: string;
-  deliveryDays: number | null;
   expiresAt: string;
 }
 export type BackendOrderStatus =

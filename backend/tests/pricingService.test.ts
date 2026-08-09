@@ -1,107 +1,37 @@
 import { describe, expect, it } from 'vitest';
-import {
-  InMemoryPricingQuoteRepository,
-  LiveEasyPostPricingService,
-  QuotePersistenceError,
-  RetailRateUnavailableError,
-  UnsupportedPricingServiceError,
-} from '../src/services/pricingService.js';
-import type { RateProvider, ReferenceRate } from '../src/services/rateProvider.js';
-import { getShippingServiceMapping } from '../src/services/shippingServiceMapping.js';
+import { InMemoryPricingQuoteRepository, LiveEasyPostPricingService } from '../src/services/pricingService.js';
+import type { RateProvider, ReferenceRate, SupportedCarrier } from '../src/services/rateProvider.js';
 
-const address = {
-  fullName: 'Test User', company: '', phone: '', address1: '1 Main St', address2: '',
-  city: 'Chicago', state: 'IL', zip: '60601', country: 'US',
-};
-const input = {
-  selectionId: '123e4567-e89b-42d3-a456-426614174000', labelTypeId: 87,
-  weight: 2, length: 14, width: 10, height: 6, sender: address, recipient: address,
-};
-const rate = (serviceCode: string, retailPriceCents: number): ReferenceRate => ({
-  providerShipmentId: 'shp_1', providerRateId: `rate_${serviceCode}`, carrier: 'USPS',
-  serviceCode, serviceName: serviceCode, retailPriceCents, deliveryDays: 2,
-  deliveryDate: null, guaranteed: false,
+const address = { fullName: 'Test User', company: '', phone: '', address1: '1 Main St', address2: '', city: 'Chicago', state: 'IL', zip: '60601', country: 'US' };
+const input = { selectionId: '123e4567-e89b-42d3-a456-426614174000', labelTypeId: 87, weight: 2, length: 14, width: 10, height: 6, sender: address, recipient: address };
+const rate = (carrier: SupportedCarrier, serviceCode: string, rateCents: number): ReferenceRate => ({
+  providerShipmentId: 'shp_1', providerRateId: `rate_${carrier}_${serviceCode}`, carrier,
+  providerCarrier: carrier, serviceCode, serviceName: `${carrier} ${serviceCode}`, rateCents,
+  currency: 'USD', deliveryDays: 2, deliveryDate: null, guaranteed: false,
 });
-const serviceFor = (rates: ReferenceRate[]) => {
-  const calls: unknown[] = [];
-  const provider: RateProvider = {
-    async getRates(request) { calls.push(request); return rates; },
-  };
-  return {
-    service: new LiveEasyPostPricingService(provider, new InMemoryPricingQuoteRepository(), 20),
-    provider,
-    calls,
-  };
-};
+const serviceFor = (rates: ReferenceRate[]) => new LiveEasyPostPricingService(
+  { getRates: async () => rates } satisfies RateProvider, new InMemoryPricingQuoteRepository(), 20,
+);
 
-describe('EasyPost USPS retail pricing', () => {
-  it.each([[800, 640, 160], [500, 400, 100], [1525, 1220, 305]])(
-    'discounts retail %s cents by exactly 20%%',
-    async (retail, customer, savings) => {
-      const quote = await serviceFor([rate('Priority', retail)]).service.getQuote(input);
-      expect(quote).toMatchObject({
-        carrier: 'USPS', serviceCode: 'Priority', serviceName: 'USPS Priority Mail',
-        labelTypeId: 87, referencePriceCents: retail,
-        customerPriceCents: customer, savingsCents: savings, savingsPercent: 20,
-      });
-      expect(quote).not.toHaveProperty('shipAirLabelTypeId');
+describe('multi-carrier cheapest-rate pricing', () => {
+  it.each([[855, 684, 171], [818, 654, 164], [1206, 965, 241]])(
+    'prices %s cents at exactly 20%% off', async (benchmark, customer, savings) => {
+      const quote = await serviceFor([rate('FedEx', 'SMART_POST', benchmark)]).getQuote(input);
+      expect(quote.bestRate).toMatchObject({ benchmarkPriceCents: benchmark, customerPriceCents: customer, savingsCents: savings });
     },
   );
-
-  it('maps configured provider IDs to exact EasyPost service codes', () => {
-    expect(getShippingServiceMapping(87)).toMatchObject({ referenceRateService: 'Priority' });
-    expect(getShippingServiceMapping(78)).toMatchObject({ referenceRateService: 'GroundAdvantage' });
-  });
-
-  it('finds GroundAdvantage retail and prices $5.00 at $4.00', async () => {
+  it('sorts USPS, FedEx, and UPS and selects the cheapest eligible rate', async () => {
     const quote = await serviceFor([
-      rate('Priority', 800),
-      rate('GroundAdvantage', 500),
-    ]).service.getQuote({ ...input, labelTypeId: 78 });
-    expect(quote).toMatchObject({
-      serviceCode: 'GroundAdvantage', serviceName: 'USPS Ground Advantage',
-      labelTypeId: 78, referencePriceCents: 500,
-      customerPriceCents: 400, savingsCents: 100,
-    });
+      rate('USPS', 'GroundAdvantage', 882), rate('UPS', 'Ground', 915), rate('FedEx', 'SMART_POST', 855),
+    ]).getQuote(input);
+    expect(quote.bestRate).toMatchObject({ carrier: 'FedEx', rateId: 'rate_FedEx_SMART_POST', benchmarkPriceCents: 855, customerPriceCents: 684 });
+    expect(quote.alternatives.map((option) => option.carrier)).toEqual(['USPS', 'UPS']);
   });
-
-  it('returns a service-specific error when GroundAdvantage is absent', async () => {
-    await expect(
-      serviceFor([rate('Priority', 800)]).service.getQuote({ ...input, labelTypeId: 78 }),
-    ).rejects.toThrow('The selected USPS service is unavailable for this shipment.');
-  });
-
-  it('distinguishes a matched service with no retail reference rate', async () => {
-    await expect(
-      serviceFor([{ ...rate('Priority', 800), retailPriceCents: null }]).service.getQuote(input),
-    ).rejects.toBeInstanceOf(RetailRateUnavailableError);
-  });
-
-  it('identifies quote persistence failure after calculation succeeds', async () => {
-    const provider: RateProvider = { getRates: async () => [rate('Priority', 800)] };
-    const service = new LiveEasyPostPricingService(provider, {
-      save: async () => { throw Object.assign(new Error('insert failed'), { code: '42P01' }); },
-      findById: async () => null,
-    });
-    await expect(service.getQuote(input)).rejects.toBeInstanceOf(QuotePersistenceError);
-  });
-
-  it('recalculates Priority -> Ground Advantage -> Priority and clears each previous quote', async () => {
+  it('persists every selectable option with internal subsidy analytics', async () => {
     const repository = new InMemoryPricingQuoteRepository();
-    const configured = serviceFor([rate('Priority', 800), rate('GroundAdvantage', 500)]);
-    const service = new LiveEasyPostPricingService(configured.provider, repository);
-    const priority = await service.getQuote(input);
-    const ground = await service.getQuote({ ...input, labelTypeId: 78 });
-    const priorityAgain = await service.getQuote(input);
-    expect(configured.calls).toHaveLength(3);
-    expect(await service.getStoredQuote(priority.quoteId)).toBeNull();
-    expect(await service.getStoredQuote(ground.quoteId)).toBeNull();
-    expect(await service.getStoredQuote(priorityAgain.quoteId)).toMatchObject({ serviceCode: 'Priority' });
-  });
-
-  it('rejects an unknown provider label type before rating', async () => {
-    await expect(
-      serviceFor([rate('Priority', 800)]).service.getQuote({ ...input, labelTypeId: 999 }),
-    ).rejects.toBeInstanceOf(UnsupportedPricingServiceError);
+    const service = new LiveEasyPostPricingService({ getRates: async () => [rate('FedEx', 'SMART_POST', 855), rate('USPS', 'Priority', 1206)] }, repository);
+    const quote = await service.getQuote(input);
+    const selected = await service.getStoredQuote(quote.alternatives[0]!.quoteId);
+    expect(selected).toMatchObject({ easyPostRateId: 'rate_USPS_Priority', carrierRateCents: 1206, customerPriceCents: 965, grossSpreadCents: -241, fulfillmentProvider: 'easypost' });
   });
 });

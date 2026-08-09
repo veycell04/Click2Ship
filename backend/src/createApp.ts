@@ -20,6 +20,7 @@ import { safeDatabaseError } from './services/postgresRepositories.js';
 import { normalizeLabelProviderError } from './services/normalizeLabelProviderError.js';
 import { getShippingServiceMapping } from './services/shippingServiceMapping.js';
 import { LabelProviderError } from './services/labelProviderError.js';
+import type { EasyPostLabelProvider } from './providers/easyPostLabelProvider.js';
 
 export async function buildApp(
   config: BackendConfig,
@@ -29,6 +30,7 @@ export async function buildApp(
   orderRepository?: OrderRepository,
   pricingService?: PricingService,
   database?: { query(queryText: string): Promise<unknown> },
+  easyPostLabelProvider?: EasyPostLabelProvider,
 ) {
   const app = Fastify({
     logger: { redact: ['req.headers.authorization', 'req.body.sender', 'req.body.recipient'] },
@@ -196,8 +198,8 @@ export async function buildApp(
           );
           return reply.code(error.statusCode).send({
             success: false,
-            error: 'EASYPOST_ERROR',
-            message: error.message,
+            error: 'RATE_PROVIDER_ERROR',
+            message: 'Unable to retrieve shipping rates.',
             ...(config.nodeEnv === 'development' ? { diagnostic: error.diagnostic } : {}),
           });
         }
@@ -404,7 +406,20 @@ export async function buildApp(
         const claimed = await orderRepository.claimLabelProcessing(orderId);
         if (!claimed) return { received: true };
         try {
-          const providerLabel = await provider.createLabel(claimed.shipmentSnapshot);
+          const storedQuote = await pricingService.getStoredQuote(claimed.quoteId);
+          if (!storedQuote) throw new Error('Stored fulfillment quote was not found.');
+          const existingLabel = await repository.claimProcessing(
+            claimed.selectionId,
+            storedQuote.fulfillmentProvider,
+          );
+          if (existingLabel?.status === 'completed' && existingLabel.label) {
+            await orderRepository.markLabelCreated(orderId, existingLabel.label);
+            return { received: true };
+          }
+          const purchased = easyPostLabelProvider && storedQuote.fulfillmentProvider === 'easypost'
+            ? await easyPostLabelProvider.purchaseLabel(storedQuote)
+            : { label: await provider.createLabel(claimed.shipmentSnapshot), pdfUrl: '' };
+          const providerLabel = purchased.label;
           const label = {
             ...providerLabel,
             labelTypeId: claimed.shipmentSnapshot.labelTypeId,
@@ -415,12 +430,12 @@ export async function buildApp(
             downloadUrl: `/api/shipping/labels/${encodeURIComponent(providerLabel.id)}/download`,
             reference: claimed.shipmentSnapshot.reference,
           };
-          await repository.markCompleted(claimed.selectionId, label, orderId);
+          await repository.markCompleted(claimed.selectionId, label, orderId, purchased.pdfUrl);
           await orderRepository.markLabelCreated(orderId, label);
-        } catch (error) {
+        } catch {
           await orderRepository.markLabelFailed(
             orderId,
-            error instanceof Error ? error.message : 'Label creation failed.',
+            "Payment received, but we couldn't create your label. Please contact support. You will not be charged again.",
           );
         }
         return { received: true };
@@ -511,7 +526,14 @@ export async function buildApp(
     '/api/shipping/labels/:id/download',
     async (request, reply) => {
       const record = await repository.findByLabelId(request.params.id);
-      const download = await provider.downloadLabel(request.params.id);
+      const providerDownloadUrl = record?.providerDownloadUrl;
+      const download = providerDownloadUrl
+        ? await (async () => {
+            const response = await fetch(providerDownloadUrl);
+            if (!response.ok) throw new Error('Unable to download the shipping label.');
+            return { bytes: new Uint8Array(await response.arrayBuffer()), contentType: 'application/pdf' as const };
+          })()
+        : await provider.downloadLabel(request.params.id);
       const tracking = record?.label?.trackingNumber || request.params.id;
       return reply
         .header('Content-Type', 'application/pdf')

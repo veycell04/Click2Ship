@@ -136,10 +136,11 @@ export class PostgresPricingQuoteRepository implements PricingQuoteRepository {
           id, selection_id, easy_post_shipment_id, easy_post_rate_id, carrier,
           service_code, service_name, ship_air_label_type_id, reference_price_cents,
           customer_price_cents, savings_cents, savings_percent, currency,
-          shipment_snapshot, document, expires_at
+          shipment_snapshot, document, expires_at, benchmark_price_cents,
+          carrier_rate_cents, gross_spread_cents, fulfillment_provider, selected_rate_snapshot
         ) VALUES (
           $1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
-          $14::jsonb, $15::jsonb, $16
+          $14::jsonb, $15::jsonb, $16, $17, $18, $19, $20, $21::jsonb
         )`,
         [
           quote.quoteId,
@@ -158,6 +159,11 @@ export class PostgresPricingQuoteRepository implements PricingQuoteRepository {
           JSON.stringify(quote.shipmentSnapshot),
           JSON.stringify(quote),
           quote.expiresAt,
+          quote.benchmarkPriceCents,
+          quote.carrierRateCents,
+          quote.grossSpreadCents,
+          quote.fulfillmentProvider,
+          JSON.stringify(quote.selectedRateSnapshot),
         ],
       );
       await client.query('COMMIT');
@@ -334,7 +340,7 @@ export class PostgresLabelRepository implements LabelRepository {
     return result.rows[0]?.document ?? null;
   }
 
-  async claimProcessing(selectionId: string) {
+  async claimProcessing(selectionId: string, provider = 'legacy') {
     const record: LabelRecord = {
       selectionId,
       status: 'processing',
@@ -343,14 +349,14 @@ export class PostgresLabelRepository implements LabelRepository {
     };
     const result = await this.database.pool.query(
       `INSERT INTO labels (id, selection_id, provider, status, document, created_at)
-       VALUES ($1::uuid, $2::uuid, 'shipair', 'processing', $3::jsonb, $4)
+       VALUES ($1::uuid, $2::uuid, $3, 'processing', $4::jsonb, $5)
        ON CONFLICT (selection_id) DO NOTHING RETURNING id`,
-      [crypto.randomUUID(), selectionId, JSON.stringify(record), record.createdAt],
+      [crypto.randomUUID(), selectionId, provider, JSON.stringify(record), record.createdAt],
     );
     return result.rowCount === 1 ? null : this.findBySelectionId(selectionId);
   }
 
-  async markCompleted(selectionId: string, label: CreatedLabel, orderId?: string) {
+  async markCompleted(selectionId: string, label: CreatedLabel, orderId?: string, providerDownloadUrl?: string) {
     const record: LabelRecord = {
       selectionId,
       orderId,
@@ -361,6 +367,7 @@ export class PostgresLabelRepository implements LabelRepository {
       status: 'completed',
       createdAt: label.createdAt,
       label,
+      providerDownloadUrl,
     };
     await this.database.pool.query(
       `UPDATE labels SET order_id = $2::uuid, provider_label_id = $3, tracking_number = $4,

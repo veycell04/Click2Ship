@@ -37,7 +37,6 @@ import {
   type SelectionDebugData,
 } from '../services/storage';
 import { emptyShipmentSession, shipmentSessionReducer } from './shipmentSession';
-import { LabelTypeSelect } from './LabelTypeSelect';
 import { copyText, downloadPdf, openPdfForPrint } from './labelActions';
 import { createPricingInputKey, describePricingError, PricingRequestGate } from './pricingState';
 import { PriceCard } from './PriceCard';
@@ -180,8 +179,8 @@ export function App() {
   const [finalConfirmed, setFinalConfirmed] = useState(false);
   const [completedShipment, setCompletedShipment] = useState<CompletedShipment | null>(null);
   const [recentLabels, setRecentLabels] = useState<CompletedShipment[]>([]);
-  const [labelTypes, setLabelTypes] = useState<BackendLabelType[]>([]);
-  const [selectedLabelTypeId, setSelectedLabelTypeId] = useState<string>('');
+  const [, setLabelTypes] = useState<BackendLabelType[]>([]);
+  const [selectedLabelTypeId] = useState<string>('87');
   const [creatingLabel, setCreatingLabel] = useState(false);
   const [labelError, setLabelError] = useState('');
   const [backendHealth, setBackendHealth] = useState('not checked');
@@ -407,10 +406,6 @@ export function App() {
       throw new Error(`Expected labelTypes array, received: ${JSON.stringify(body)}`);
     }
     setLabelTypes(body.labelTypes);
-    setSelectedLabelTypeId((current) => {
-      if (body.labelTypes.some((labelType) => String(labelType.id) === current)) return current;
-      return body.labelTypes.length === 1 ? String(body.labelTypes[0].id) : '';
-    });
     setLabelTypesStatus(`loaded ${body.labelTypes.length}`);
     setLabelError('');
   }, []);
@@ -562,7 +557,6 @@ export function App() {
     quotedInputKey === pricingInputKey &&
     orderId === '' &&
     shipmentSession.id !== '' &&
-    selectedLabelTypeId !== '' &&
     recipient.fullName.trim() !== '' &&
     recipient.addressLine1.trim() !== '' &&
     recipient.city.trim() !== '' &&
@@ -987,32 +981,6 @@ export function App() {
               ))}
             </select>
           </label>
-          <label className="wide">
-            <span>Label type</span>
-            <LabelTypeSelect
-              id="service-labelType"
-              labelTypes={labelTypes}
-              selectedLabelTypeId={selectedLabelTypeId}
-              onChange={(nextLabelTypeId) => {
-                pricingRequestGateRef.current.invalidate();
-                setTouchedPricingFields((current) =>
-                  new Set(current).add('service.labelType'),
-                );
-                setSelectedLabelTypeId(nextLabelTypeId);
-                setPaymentPrice(null);
-                setQuotedInputKey('');
-                setPricingError('');
-                setPricingStatus(nextLabelTypeId ? 'loading' : 'idle');
-              }}
-              invalid={missingPricingByKey.has('service.labelType') && touchedPricingFields.has('service.labelType')}
-              describedBy={touchedPricingFields.has('service.labelType') ? 'service-labelType-pricing-error' : undefined}
-            />
-            {missingPricingByKey.has('service.labelType') && touchedPricingFields.has('service.labelType') && (
-              <small id="service-labelType-pricing-error" className="field-error">
-                <span aria-hidden="true">⚠ </span>Required to calculate price
-              </small>
-            )}
-          </label>
           <div className="dimensions">
             {(['weight', 'length', 'width', 'height'] as const).map((key) => (
               <label
@@ -1065,6 +1033,17 @@ export function App() {
           pricingReady={pricingReady}
           missingRequirements={groupedMissingPricingRequirements}
           onRequirementClick={focusPricingRequirement}
+          options={currentPrice ? [currentPrice.bestRate, ...currentPrice.alternatives] : []}
+          selectedQuoteId={currentPrice?.quoteId ?? ''}
+          onSelect={(option) => {
+            if (!paymentPrice) return;
+            setPaymentPrice({
+              ...paymentPrice,
+              ...option,
+              referencePriceCents: option.benchmarkPriceCents,
+              referenceDisplayAmount: option.benchmarkDisplayAmount,
+            });
+          }}
         />
 
         <section className="card confirmations">
@@ -1115,7 +1094,7 @@ export function App() {
           {!pricingReady
             ? `${groupedMissingPricingRequirements.length} ${groupedMissingPricingRequirements.length === 1 ? 'item' : 'items'} needed before pricing`
             : displayedPricingStatus === 'loading'
-              ? 'Calculating current USPS retail rate…'
+          ? 'Calculating shipping rates…'
               : currentPrice
                 ? 'Price ready'
                 : 'Pricing unavailable'}

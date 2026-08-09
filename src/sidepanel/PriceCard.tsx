@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getQuoteTimeLabel } from './priceCardTime';
 import type { PricingRequirement } from './pricingRequirements';
+import type { BackendRateOption } from '../services/click2ShipBackendClient';
 
 export interface PriceCardProps {
   serviceName: string;
@@ -16,6 +17,9 @@ export interface PriceCardProps {
   pricingReady: boolean;
   missingRequirements: PricingRequirement[];
   onRequirementClick: (requirement: PricingRequirement) => void;
+  options?: BackendRateOption[];
+  selectedQuoteId?: string;
+  onSelect?: (option: BackendRateOption) => void;
 }
 
 export function PriceCard({
@@ -32,6 +36,7 @@ export function PriceCard({
   pricingReady,
   missingRequirements,
   onRequirementClick,
+  options = [], selectedQuoteId = '', onSelect = () => undefined,
 }: PriceCardProps) {
   const [timeLabel, setTimeLabel] = useState(() => getQuoteTimeLabel(expiresAt));
 
@@ -95,13 +100,14 @@ export function PriceCard({
       ) : (
         <div className="price-card-content">
           <div className="price-service">
+            <span>BEST PRICE</span>
             <strong>{serviceName}</strong>
             <span className={timeLabel === 'Quote expired' ? 'expired' : ''}>{timeLabel}</span>
           </div>
 
           <dl className="price-comparison" aria-label="Shipping price comparison">
             <div className="price-comparison-row">
-              <dt>USPS retail</dt>
+              <dt>Regular rate</dt>
               <dd>{retailPrice}</dd>
             </div>
             <div className="price-comparison-row customer-price-row">
@@ -119,10 +125,22 @@ export function PriceCard({
               %
             </span>
             <div>
-              <strong>{savingsPercent}% below USPS retail</strong>
+              <strong>{savingsPercent}% less</strong>
               <span>We pass the savings to you.</span>
             </div>
           </div>
+          {options.length > 0 && (
+            <div className="rate-options">
+              <h3>Other options</h3>
+              {options.map((option, index) => (
+                <button key={option.quoteId} type="button" className={option.quoteId === selectedQuoteId ? 'secondary selected' : 'secondary'} onClick={() => onSelect(option)}>
+                  <strong>{option.serviceName}</strong>
+                  <span>{option.customerDisplayAmount}{option.deliveryDays ? ` · ${option.deliveryDays} days` : ''}</span>
+                  {index === 0 && <small>Best price selected</small>}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </section>

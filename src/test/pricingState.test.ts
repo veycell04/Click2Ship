@@ -22,14 +22,14 @@ describe('pricing error messages', () => {
     );
   });
 
-  it('surfaces the selected-service unavailable message', () => {
+  it('surfaces a carrier-neutral validation message', () => {
     const body = JSON.stringify({
       error: 'SELECTED_SERVICE_UNAVAILABLE',
       message: 'USPS Ground Advantage rate is unavailable for this shipment.',
     });
     expect(
       describePricingError(new BackendClientError('TEST', 'failed', 422, '', body)),
-    ).toBe('USPS Ground Advantage rate is unavailable for this shipment.');
+    ).toBe('Pricing validation failed');
   });
 });
 

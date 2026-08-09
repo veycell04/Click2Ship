@@ -12,12 +12,13 @@ export interface LabelRecord {
   createdAt: string;
   label: CreatedLabel | null;
   errorCode?: string;
+  providerDownloadUrl?: string;
 }
 export interface LabelRepository {
   findBySelectionId(selectionId: string): Promise<LabelRecord | null>;
   findByLabelId(labelId: string): Promise<LabelRecord | null>;
-  claimProcessing(selectionId: string): Promise<LabelRecord | null>;
-  markCompleted(selectionId: string, label: CreatedLabel, orderId?: string): Promise<void>;
+  claimProcessing(selectionId: string, provider?: string): Promise<LabelRecord | null>;
+  markCompleted(selectionId: string, label: CreatedLabel, orderId?: string, providerDownloadUrl?: string): Promise<void>;
   markFailed(selectionId: string, errorCode: string, unknown?: boolean): Promise<void>;
 }
 
@@ -29,7 +30,8 @@ export class InMemoryLabelRepository implements LabelRepository {
   async findByLabelId(id: string) {
     return [...this.records.values()].find((record) => record.label?.id === id) ?? null;
   }
-  async claimProcessing(selectionId: string) {
+  async claimProcessing(selectionId: string, _provider = 'legacy') {
+    void _provider;
     const existing = this.records.get(selectionId);
     if (existing) return existing;
     this.records.set(selectionId, {
@@ -40,7 +42,7 @@ export class InMemoryLabelRepository implements LabelRepository {
     });
     return null;
   }
-  async markCompleted(selectionId: string, label: CreatedLabel) {
+  async markCompleted(selectionId: string, label: CreatedLabel, orderId?: string, providerDownloadUrl?: string) {
     this.records.set(selectionId, {
       selectionId,
       providerLabelId: label.id,
@@ -50,6 +52,8 @@ export class InMemoryLabelRepository implements LabelRepository {
       status: 'completed',
       createdAt: label.createdAt,
       label,
+      orderId,
+      providerDownloadUrl,
     });
   }
   async markFailed(selectionId: string, errorCode: string, unknown = false) {

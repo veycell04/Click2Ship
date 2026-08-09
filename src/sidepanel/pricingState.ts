@@ -2,19 +2,16 @@ import { BackendClientError } from '../services/click2ShipBackendClient';
 
 export const describePricingError = (error: unknown): string => {
   if (error instanceof BackendClientError) {
-    if (error.responseBody.includes('UNSUPPORTED_LABEL_TYPE')) {
-      return 'Pricing is not yet available for this label type.';
-    }
-    if (error.responseBody.includes('SELECTED_SERVICE_UNAVAILABLE')) {
+    if (error.responseBody.includes('SERVICE_RATE_UNAVAILABLE')) {
       try {
         const response = JSON.parse(error.responseBody) as { message?: unknown };
         if (typeof response.message === 'string') return response.message;
       } catch {
-        return 'The selected USPS rate is unavailable for this shipment.';
+        return 'The selected shipping rate is unavailable for this shipment.';
       }
     }
-    if (error.responseBody.includes('EASYPOST_')) {
-      return 'Unable to retrieve the current USPS retail rate.';
+    if (error.responseBody.includes('RATE_PROVIDER_')) {
+      return 'Unable to retrieve shipping rates.';
     }
     if (error.status === 404) return 'Pricing endpoint not found';
     if (error.status === 422) return 'Pricing validation failed';

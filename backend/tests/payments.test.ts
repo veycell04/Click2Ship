@@ -114,7 +114,7 @@ const setup = async () => {
     payment,
     orders,
     new LiveEasyPostPricingService(
-      { getRates: async () => [{ providerShipmentId: 'shp_1', providerRateId: 'rate_1', carrier: 'USPS', serviceCode: 'Priority', serviceName: 'Priority', retailPriceCents: 990, deliveryDays: 2, deliveryDate: null, guaranteed: false }] } satisfies RateProvider,
+      { getRates: async () => [{ providerShipmentId: 'shp_1', providerRateId: 'rate_1', carrier: 'USPS', providerCarrier: 'USPS', serviceCode: 'Priority', serviceName: 'USPS Priority Mail', rateCents: 990, currency: 'USD', deliveryDays: 2, deliveryDate: null, guaranteed: false }] } satisfies RateProvider,
       quoteRepository,
     ),
   );
