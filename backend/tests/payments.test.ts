@@ -115,7 +115,10 @@ const setup = async () => {
     payment,
     orders,
     new LiveEasyPostPricingService(
-      { getRates: async () => [{ providerShipmentId: 'shp_1', providerRateId: 'rate_1', carrier: 'USPS', providerCarrier: 'USPS', serviceCode: 'Priority', serviceName: 'USPS Priority Mail', rateCents: 990, currency: 'USD', deliveryDays: 2, deliveryDate: null, guaranteed: false }] } satisfies RateProvider,
+      { getRates: async () => [
+        { providerShipmentId: 'shp_1', providerRateId: 'rate_1', carrier: 'USPS', providerCarrier: 'USPS', serviceCode: 'Priority', serviceName: 'USPS Priority Mail', rateCents: 990, currency: 'USD', deliveryDays: 2, deliveryDate: null, guaranteed: false },
+        { providerShipmentId: 'shp_1', providerRateId: 'rate_2', carrier: 'USPS', providerCarrier: 'USPS', serviceCode: 'GroundAdvantage', serviceName: 'USPS Ground Advantage', rateCents: 800, currency: 'USD', deliveryDays: 5, deliveryDate: null, guaranteed: false },
+      ] } satisfies RateProvider,
       quoteRepository,
     ),
   );

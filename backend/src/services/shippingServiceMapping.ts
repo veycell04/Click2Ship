@@ -3,6 +3,7 @@ export interface ShippingServiceMapping {
   carrier: 'USPS';
   referenceRateService: string;
   displayName: string;
+  benchmarkClass: 'ECONOMY_GROUND' | 'PRIORITY';
 }
 
 export const SERVICE_MAPPINGS = {
@@ -11,12 +12,14 @@ export const SERVICE_MAPPINGS = {
     carrier: 'USPS',
     referenceRateService: 'Priority',
     displayName: 'USPS Priority Mail',
+    benchmarkClass: 'PRIORITY',
   },
   GROUND_ADVANTAGE: {
     providerLabelTypeId: 78,
     carrier: 'USPS',
     referenceRateService: 'GroundAdvantage',
     displayName: 'USPS Ground Advantage',
+    benchmarkClass: 'ECONOMY_GROUND',
   },
 } as const satisfies Record<string, ShippingServiceMapping>;
 
