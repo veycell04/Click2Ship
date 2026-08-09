@@ -5,7 +5,7 @@ export class InvalidShipmentRequestError extends Error {
   readonly statusCode = 400;
 }
 
-/** Server-boundary validation. A future API handler must call this before ShipAir. */
+/** Server-boundary validation. A future API handler must call this before a label provider. */
 export function validateShipmentRequestForBackend(parcel: PackageDetails): void {
   if (!validatePackageWeight(parcel.weight).valid) {
     throw new InvalidShipmentRequestError(MINIMUM_PACKAGE_WEIGHT_MESSAGE);

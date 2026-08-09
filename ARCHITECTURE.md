@@ -35,13 +35,13 @@ Chrome side panel
   -> Click2Ship backend (authenticated HTTPS)
       -> address validation provider
       -> payment provider
-      -> ShipAir provider
+      -> label provider
       -> audit and shipment database
 ```
 
-## Current ShipAir development backend
+## Current label-provider backend
 
-`backend/` is a separate Fastify TypeScript service bound to `127.0.0.1:3001`. The extension uses `Click2ShipBackendClient`; it never imports ShipAir provider code. The backend validates shipment data again, converts ShipAir responses into Click2Ship domain types, and streams label PDFs without exposing the bearer token.
+`backend/` is a separate Fastify TypeScript service bound to `127.0.0.1:3001`. The extension uses `Click2ShipBackendClient`; it never imports provider code. The backend validates shipment data again, converts provider responses into Click2Ship domain types, and streams label PDFs without exposing provider credentials.
 
 `LabelRepository` isolates idempotency state. The development implementation is in-memory. A production implementation must use PostgreSQL with a unique constraint on `selectionId` and an atomic processing lease so multiple server instances cannot create duplicates.
 
@@ -53,12 +53,12 @@ The backend will own authentication, authorization, rate limiting, idempotency, 
 
 `RateProvider` isolates backend rating. `EasyPostRateProvider` creates a rating-only Shipment, converts
 pounds to ounces, filters to USPS, and exposes only valid `retail_rate` values. Central service
-mapping pairs EasyPost `Priority` with ShipAir label type `87`; unmapped services are rejected.
+mapping pairs EasyPost `Priority` with the configured provider label type; unmapped services are rejected.
 `LiveEasyPostPricingService` calculates the configured discount in integer cents and persists the
 ten-minute quote with an immutable shipment snapshot.
 
 Checkout accepts only the quote ID and uses its stored price. After a verified paid Stripe webhook,
-ShipAir remains the sole label provider. No EasyPost buy operation exists in this flow.
+the configured fulfillment provider creates the label. No EasyPost buy operation exists in this flow.
 
 Production uses Postgres-backed quote, order, and label repositories. Unique selection IDs prevent
 duplicate orders, Stripe receives a quote-based idempotency key, and the transactional order claim

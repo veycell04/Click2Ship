@@ -45,10 +45,13 @@ export interface LabelDownload {
   contentType: 'application/pdf';
 }
 
-export interface ShippingProvider {
+export interface LabelProvider {
   getBalance(): Promise<ShippingBalance>;
   getLabelTypes(): Promise<LabelType[]>;
   createLabel(input: CreateLabelInput): Promise<CreatedLabel>;
   getLabel(id: string): Promise<CreatedLabel>;
   downloadLabel(id: string): Promise<LabelDownload>;
 }
+
+/** @deprecated Use the provider-neutral LabelProvider domain interface. */
+export type ShippingProvider = LabelProvider;

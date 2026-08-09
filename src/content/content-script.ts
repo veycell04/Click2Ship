@@ -134,7 +134,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
         extractionResult,
       }),
     (error: unknown) => {
-      console.error('Click2Ship extraction coordinator error', error);
+      console.error('ShipDime extraction coordinator error', error);
       sendResponse({
         ...selection,
         detectedMarketplace,

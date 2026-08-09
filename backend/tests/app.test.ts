@@ -163,6 +163,21 @@ describe('Click2Ship backend', () => {
     });
     await app.close();
   });
+
+  it('exposes customer-facing USPS service names instead of provider catalog names', async () => {
+    const provider = new FakeProvider();
+    provider.getLabelTypes = async () => [
+      { id: 87, name: 'USPS APIs Priority Mail 9201', description: '' },
+    ];
+    const app = await buildApp(config, provider, new InMemoryLabelRepository());
+    const response = await app.inject({ method: 'GET', url: '/api/shipping/label-types' });
+    expect(response.json()).toEqual({
+      success: true,
+      labelTypes: [{ id: 87, name: 'USPS Priority Mail', description: '' }],
+    });
+    expect(response.body.toLowerCase()).not.toContain('shipair');
+    await app.close();
+  });
   it('accepts loopback origins for local browser testing', async () => {
     const developmentApp = await buildApp(
       { ...config, nodeEnv: 'development' },
@@ -293,7 +308,7 @@ describe('Click2Ship backend', () => {
     },
   );
 
-  it('passes a sanitized ShipAir 422 response through', async () => {
+  it('returns a provider-neutral public validation error', async () => {
     const provider = new FakeProvider();
     provider.createLabel = async () => {
       throw new ShippingProviderError(
@@ -312,14 +327,12 @@ describe('Click2Ship backend', () => {
     expect(response.statusCode).toBe(422);
     expect(response.json()).toEqual({
       success: false,
-      error: 'SHIPAIR_VALIDATION_ERROR',
-      message: 'ShipAir rejected the label request.',
-      shipAirStatus: 422,
-      shipAirResponse: {
-        message: 'Invalid destination',
-        errors: { to_zip: ['Invalid ZIP'] },
-      },
+      error: 'LABEL_VALIDATION_ERROR',
+      message: 'Some shipment information is invalid.',
+      fieldErrors: { to_zip: ['Invalid ZIP'] },
     });
+    expect(response.body.toLowerCase()).not.toContain('shipair');
+    expect(response.body).not.toContain('shipair.site');
     await app.close();
   });
 

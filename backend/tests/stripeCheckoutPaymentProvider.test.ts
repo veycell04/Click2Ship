@@ -29,11 +29,12 @@ describe('StripeCheckoutPaymentProvider', () => {
           price_data: {
             currency: 'usd',
             unit_amount: 640,
-            product_data: { name: 'Click2Ship USPS Priority Mail Label' },
+            product_data: { name: 'ShipDime — USPS Priority Mail' },
           },
         }],
       }),
       { idempotencyKey: 'click2ship-checkout-quote-1' },
     );
+    expect(JSON.stringify(create.mock.calls[0])).not.toContain('ShipAir');
   });
 });

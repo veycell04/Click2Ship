@@ -1,7 +1,7 @@
 import { buildApp } from './createApp.js';
 import { assertBackendConfig, loadConfig } from './config/env.js';
 import { EasyPostRateProvider } from './providers/easyPostRateProvider.js';
-import { ShipAirShippingProvider } from './providers/shipAirShippingProvider.js';
+import { ShipAirLabelProvider } from './providers/shipAirShippingProvider.js';
 import { StripeCheckoutPaymentProvider } from './providers/stripeCheckoutPaymentProvider.js';
 import { InMemoryLabelRepository } from './services/labelRepository.js';
 import { InMemoryOrderRepository } from './services/orderRepository.js';
@@ -25,7 +25,7 @@ export async function buildConfiguredApp() {
     allowedExtensionOrigin: `chrome-extension://${config.extensionId}`,
   });
 
-  const shippingProvider = new ShipAirShippingProvider(
+  const shippingProvider = new ShipAirLabelProvider(
     config.shipAirBaseUrl,
     config.shipAirApiKey,
   );

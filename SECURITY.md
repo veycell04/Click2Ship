@@ -10,10 +10,10 @@ The extension requests no `activeTab`, scripting, or tabs permission. A declarat
 
 ## Secrets and backend rules
 
-- Never put ShipAir, payment, marketplace, or other private keys in source code, a Vite environment variable, the manifest, or extension storage.
+- Never put shipping-provider, payment, marketplace, or other private keys in source code, a Vite environment variable, the manifest, or extension storage.
 - Variables prefixed with `VITE_` are bundled into client code and must always be treated as public.
 - `.env` files are ignored; `.env.example` contains documentation and safe placeholders only.
-- ShipAir provider calls pass through the Click2Ship backend with server-side secret storage. `SHIPAIR_API_KEY` belongs only in `backend/.env`.
+- Label-provider calls pass through the Click2Ship backend with server-side secret storage. Provider credentials belong only in the backend environment.
 - `EASYPOST_API_KEY` is backend-only. Never expose it through a `VITE_` variable, the extension
   bundle, diagnostics, or logs. Development should use an EasyPost test key.
 - The backend must validate all client data, enforce authorization and rate limits, protect against replay with idempotency keys, and avoid logging sensitive address or payment data unnecessarily.
@@ -28,4 +28,4 @@ Sender and selected recipient text may contain personal information. They remain
 
 The development backend binds only to loopback, applies an exact-origin CORS allowlist for the configured extension ID and local Vite UI, redacts address bodies and authorization headers from logs, and rejects invalid shipment data independently of the extension. Never use wildcard CORS. Before deployment, add user authentication, a durable idempotency repository, distributed locking, HTTPS, rate limits, audit records, and retention controls.
 
-ShipAir labels are real and final. The UI requires explicit confirmation, sends one POST without automatic retries, and treats a post-submission timeout as unknown.
+Purchased labels are real and final. The UI requires explicit confirmation, sends one POST without automatic retries, and treats a post-submission timeout as unknown.

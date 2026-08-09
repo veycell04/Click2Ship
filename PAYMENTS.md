@@ -2,7 +2,7 @@
 
 Click2Ship uses Stripe-hosted Checkout in Stripe **test mode**. Stripe.js and payment credentials
 never run inside the Chrome extension. The backend calculates the amount, creates Checkout, verifies
-webhooks, and creates the ShipAir label only after a verified paid event.
+webhooks, and creates the shipping label only after a verified paid event.
 
 ## Local configuration
 
@@ -50,8 +50,8 @@ quote and its immutable shipment snapshot, then uses `customerPriceCents` as Str
 amount. Creating a newer quote for the same selection invalidates the older quote.
 
 EasyPost supplies USPS retail reference rates only. Payment fulfillment never buys an EasyPost
-label: the verified Stripe webhook uses the stored ShipAir label type and shipment snapshot to ask
-ShipAir to create the final label.
+label: the verified Stripe webhook uses the stored provider-neutral label type and shipment snapshot
+to ask the configured label provider to create the final label.
 
 ## State and duplicate prevention
 
@@ -59,16 +59,16 @@ Orders progress through `draft`, `checkout_created`, `payment_pending`, `paid`, 
 and `label_created`, with `payment_failed` and `label_failed` terminal attention states. One order is
 correlated to one selection ID. Active Checkout Sessions are reused. Webhook fulfillment atomically
 claims `label_processing`; duplicate events see an existing processing or completed state and cannot
-create another ShipAir label.
+create another label.
 
-If payment succeeds but ShipAir fails, the order remains paid as `label_failed`. It must be reviewed
+If payment succeeds but label creation fails, the order remains paid as `label_failed`. It must be reviewed
 and retried administratively against the same paid order; Click2Ship must not automatically create a
 new charge. Production deployment requires a durable transactional database, distributed locking,
 authenticated admin recovery, HTTPS public webhook hosting, monitoring, and refund/support tooling.
 
 ## Vercel deployment
 
-Set the Vercel project Root Directory to `backend`. Fastify is detected from `src/server.ts`. Connect
+Set the Vercel project Root Directory to `backend`. Fastify is detected from `src/index.ts`. Connect
 a managed Postgres integration (for example Neon) and configure `DATABASE_URL`; production startup
 fails instead of falling back to memory when this variable is missing. The Postgres repositories
 persist quotes, orders, and label idempotency records and use unique selection IDs plus an atomic

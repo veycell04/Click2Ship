@@ -149,7 +149,7 @@ export class PostgresPricingQuoteRepository implements PricingQuoteRepository {
           quote.carrier,
           quote.serviceCode,
           quote.serviceName,
-          quote.shipAirLabelTypeId,
+          quote.labelTypeId,
           quote.referencePriceCents,
           quote.customerPriceCents,
           quote.savingsCents,

@@ -39,7 +39,7 @@ export class AmazonMarketplaceAdapter implements MarketplaceAdapter {
     for (let depth = 0; container && depth < 8; depth += 1, container = container.parentElement) {
       const text = container.innerText;
       if (/address\s+type|contact\s+buyer/i.test(text) && text.length < 5000) {
-        console.debug('Click2Ship Amazon raw address block', {
+        console.debug('ShipDime Amazon raw address block', {
           headingNode: heading,
           containerNode: container,
           rawText: text,

@@ -59,7 +59,7 @@ export function PriceCard({
         </span>
         <div>
           <h2 id="price-card-title">Price</h2>
-          <p>Calculated securely by Click2Ship</p>
+          <p>Calculated securely by ShipDime</p>
         </div>
       </header>
 
@@ -105,7 +105,7 @@ export function PriceCard({
               <dd>{retailPrice}</dd>
             </div>
             <div className="price-comparison-row customer-price-row">
-              <dt>Click2Ship price</dt>
+              <dt>ShipDime price</dt>
               <dd>{customerPrice}</dd>
             </div>
             <div className="price-comparison-row savings-row">

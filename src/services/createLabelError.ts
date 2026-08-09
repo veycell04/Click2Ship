@@ -5,8 +5,6 @@ export interface CreateLabelDiagnostic {
   httpStatus: number | null;
   responseBody: string;
   parsedError: unknown;
-  shipAirStatus: number | null;
-  shipAirResponse: unknown;
 }
 
 const record = (value: unknown): Record<string, unknown> | null =>
@@ -28,11 +26,8 @@ export function describeCreateLabelError(
   const body = record(parsed);
   const backendMessage = typeof body?.message === 'string' ? body.message : backendError?.message;
   const fieldErrors = record(body?.fieldErrors);
-  const shipAirResponse = body?.shipAirResponse ?? null;
-  const shipAirMessage = record(shipAirResponse)?.message;
   const parts = [backendMessage || 'Unable to create the label.'];
   if (fieldErrors) parts.push(`Fields: ${JSON.stringify(fieldErrors)}`);
-  if (typeof shipAirMessage === 'string') parts.push(`ShipAir: ${shipAirMessage}`);
   if (includeRawResponse && backendError?.responseBody) {
     parts.push(`Response: ${backendError.responseBody}`);
   }
@@ -43,8 +38,6 @@ export function describeCreateLabelError(
       httpStatus: backendError?.status ?? null,
       responseBody: backendError?.responseBody || '',
       parsedError: parsed,
-      shipAirStatus: typeof body?.shipAirStatus === 'number' ? body.shipAirStatus : null,
-      shipAirResponse,
     },
   };
 }

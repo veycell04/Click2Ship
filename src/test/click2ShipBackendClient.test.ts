@@ -76,7 +76,7 @@ describe('Click2ShipBackendClient messaging', () => {
           serviceName: 'USPS Priority Mail',
           easyPostShipmentId: 'shp_1',
           easyPostRateId: 'rate_1',
-          shipAirLabelTypeId: 87,
+          labelTypeId: 87,
           referencePriceType: 'EASYPOST_USPS_RETAIL',
           referencePriceCents: 990,
           referenceDisplayAmount: '$9.90',
@@ -142,7 +142,7 @@ describe('Click2ShipBackendClient messaging', () => {
               serviceName: 'USPS Priority Mail',
               easyPostShipmentId: 'shp_1',
               easyPostRateId: 'rate_1',
-              shipAirLabelTypeId: 87,
+              labelTypeId: 87,
               referencePriceType: 'EASYPOST_USPS_RETAIL',
               referencePriceCents: 990,
               referenceDisplayAmount: '$9.90',
@@ -195,7 +195,7 @@ describe('Click2ShipBackendClient messaging', () => {
       labelTypeId: 87,
       labelTypeName: 'USPS APIs Priority Mail 9201',
       downloadUrl: '/api/shipping/labels/1/download',
-      reference: 'Click2Ship-selection',
+      reference: 'ShipDime-selection',
       createdAt: 'now',
     };
     const client = new Click2ShipBackendClient(
@@ -215,7 +215,7 @@ describe('Click2ShipBackendClient messaging', () => {
       labelTypeId: 87,
       labelTypeName: 'USPS APIs Priority Mail 9201',
       downloadUrl: '/api/shipping/labels/1/download',
-      reference: 'Click2Ship-selection',
+      reference: 'ShipDime-selection',
       createdAt: 'now',
     };
     const client = new Click2ShipBackendClient(
@@ -285,7 +285,7 @@ describe('Click2ShipBackendClient messaging', () => {
       labelTypeId: 87,
       labelTypeName: 'Priority Mail',
       downloadUrl: '/api/shipping/labels/1/download',
-      reference: 'Click2Ship-selection',
+      reference: 'ShipDime-selection',
       createdAt: 'now',
     };
     const send = vi.fn(async () => ({
@@ -312,7 +312,7 @@ describe('Click2ShipBackendClient messaging', () => {
       labelTypeId: 87,
       labelTypeName: 'Priority Mail',
       downloadUrl: '/api/shipping/labels/1/download',
-      reference: 'Click2Ship-selection',
+      reference: 'ShipDime-selection',
       createdAt: 'now',
     };
     const messages: BackendRequestMessage[] = [];

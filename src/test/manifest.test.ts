@@ -3,6 +3,9 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 interface ExtensionManifest {
+  name: string;
+  short_name: string;
+  description: string;
   minimum_chrome_version: string;
   permissions: string[];
   host_permissions: string[];
@@ -42,8 +45,13 @@ describe('extension manifest', () => {
       '128': 'icons/icon128.png',
     };
     expect(manifest.icons).toEqual(expectedIcons);
+    expect(manifest).toMatchObject({
+      name: 'ShipDime',
+      short_name: 'ShipDime',
+      description: 'Create discounted shipping labels directly from any address on the web.',
+    });
     expect(manifest.action).toEqual({
-      default_title: 'Click2Ship',
+      default_title: 'ShipDime',
       default_icon: expectedIcons,
     });
   });

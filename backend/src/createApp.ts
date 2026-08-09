@@ -1,10 +1,7 @@
 import cors from '@fastify/cors';
 import Fastify from 'fastify';
 import type { BackendConfig } from './config/env.js';
-import {
-  createShipAirLabelPayload,
-  ShippingProviderError,
-} from './providers/shipAirShippingProvider.js';
+import { createShipAirLabelPayload } from './providers/shipAirShippingProvider.js';
 import { parseCreateLabelRequest, RequestValidationError } from './schemas/createLabel.js';
 import { parsePricingQuoteInput } from './schemas/pricingQuote.js';
 import type { LabelRepository } from './services/labelRepository.js';
@@ -18,12 +15,15 @@ import {
 } from './services/pricingService.js';
 import { RateProviderError } from './services/rateProvider.js';
 import type { PaymentProvider } from './types/payments.js';
-import type { ShippingProvider } from './types/shipping.js';
+import type { LabelProvider } from './types/shipping.js';
 import { safeDatabaseError } from './services/postgresRepositories.js';
+import { normalizeLabelProviderError } from './services/normalizeLabelProviderError.js';
+import { getShippingServiceMapping } from './services/shippingServiceMapping.js';
+import { LabelProviderError } from './services/labelProviderError.js';
 
 export async function buildApp(
   config: BackendConfig,
-  provider: ShippingProvider,
+  provider: LabelProvider,
   repository: LabelRepository,
   paymentProvider?: PaymentProvider,
   orderRepository?: OrderRepository,
@@ -101,7 +101,7 @@ export async function buildApp(
   });
   app.get('/', async () => ({ name: 'Click2Ship Backend', status: 'running' }));
   app.get('/payment/success', async (_request, reply) =>
-    reply.type('text/html').send('<h1>Payment received</h1><p>You may return to Click2Ship.</p>'),
+    reply.type('text/html').send('<h1>Payment received</h1><p>You may return to ShipDime.</p>'),
   );
   app.get('/payment/cancel', async (_request, reply) =>
     reply.type('text/html').send('<h1>Checkout canceled</h1><p>No label was created.</p>'),
@@ -122,7 +122,11 @@ export async function buildApp(
       'Label-types route entered',
     );
     try {
-      const labelTypes = await provider.getLabelTypes();
+      const providerLabelTypes = await provider.getLabelTypes();
+      const labelTypes = providerLabelTypes.map((labelType) => ({
+        ...labelType,
+        name: getShippingServiceMapping(labelType.id)?.displayName ?? labelType.name,
+      }));
       labelTypes.forEach((labelType) => labelTypeNames.set(labelType.id, labelType.name));
       app.log.info({ labelTypes }, 'Normalized label types');
       return { success: true, labelTypes };
@@ -405,8 +409,8 @@ export async function buildApp(
             ...providerLabel,
             labelTypeId: claimed.shipmentSnapshot.labelTypeId,
             labelTypeName:
-              providerLabel.labelTypeName ||
               labelTypeNames.get(claimed.shipmentSnapshot.labelTypeId) ||
+              providerLabel.labelTypeName ||
               'Shipping label',
             downloadUrl: `/api/shipping/labels/${encodeURIComponent(providerLabel.id)}/download`,
             reference: claimed.shipmentSnapshot.reference,
@@ -464,14 +468,14 @@ export async function buildApp(
         ...providerLabel,
         labelTypeId: input.labelTypeId,
         labelTypeName:
-          providerLabel.labelTypeName || labelTypeNames.get(input.labelTypeId) || 'Shipping label',
+          labelTypeNames.get(input.labelTypeId) || providerLabel.labelTypeName || 'Shipping label',
         downloadUrl: `/api/shipping/labels/${encodeURIComponent(providerLabel.id)}/download`,
         reference: input.reference,
       };
       await repository.markCompleted(input.selectionId, label);
       return { success: true, label };
     } catch (error) {
-      const code = error instanceof ShippingProviderError ? error.code : 'UNKNOWN_ERROR';
+      const code = error instanceof LabelProviderError ? error.code : 'UNKNOWN_ERROR';
       await repository.markFailed(input.selectionId, code, code === 'LABEL_STATUS_UNKNOWN');
       throw error;
     }
@@ -513,7 +517,7 @@ export async function buildApp(
         .header('Content-Type', 'application/pdf')
         .header(
           'Content-Disposition',
-          `attachment; filename="Click2Ship-${tracking.replace(/[^A-Za-z0-9-]/g, '')}.pdf"`,
+          `attachment; filename="ShipDime-${tracking.replace(/[^A-Za-z0-9-]/g, '')}.pdf"`,
         )
         .send(Buffer.from(download.bytes));
     },
@@ -527,18 +531,13 @@ export async function buildApp(
         message: 'Shipment information is invalid.',
         fieldErrors: { [error.field]: error.message },
       });
-    if (error instanceof ShippingProviderError) {
-      if (error.statusCode === 422)
-        return reply.code(422).send({
-          success: false,
-          error: 'SHIPAIR_VALIDATION_ERROR',
-          message: 'ShipAir rejected the label request.',
-          shipAirStatus: 422,
-          shipAirResponse: error.shipAirResponse ?? null,
-        });
-      return reply
-        .code(error.statusCode)
-        .send({ error: { code: error.code, message: error.message } });
+    if (error instanceof LabelProviderError) {
+      app.log.error(
+        { provider: 'ShipAir', status: error.statusCode, code: error.code },
+        'LABEL_PROVIDER_REQUEST_FAILED',
+      );
+      const normalized = normalizeLabelProviderError(error);
+      return reply.code(normalized.statusCode).send(normalized.body);
     }
     app.log.error({ err: error }, 'Unhandled backend error');
     return reply

@@ -5,7 +5,7 @@ export const parsePricingQuoteInput = (value: unknown): PricingQuoteInput => {
   const input = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
   const parsed = parseCreateLabelRequest({
     ...input,
-    reference: `Click2Ship-${typeof input.selectionId === 'string' ? input.selectionId : ''}`,
+    reference: `ShipDime-${typeof input.selectionId === 'string' ? input.selectionId : ''}`,
   });
   return {
     selectionId: parsed.selectionId,

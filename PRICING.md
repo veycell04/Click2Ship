@@ -5,9 +5,9 @@ EasyPost is the backend-only USPS rate provider. Creating an EasyPost Shipment w
 only USPS rates with a valid `retail_rate`, which is the post-office retail comparison price. The
 EasyPost account rate and list rate are never shown or used as the reference.
 
-Click2Ship pounds are converted to EasyPost ounces (`weight * 16`). ShipAir label type `87` maps
-only to EasyPost service code `Priority`, displayed as **USPS Priority Mail**. Ground Advantage is
-not active until ShipAir confirms its matching label-type ID.
+Click2Ship pounds are converted to EasyPost ounces (`weight * 16`). The configured Priority Mail
+label type maps only to EasyPost service code `Priority`, displayed as **USPS Priority Mail**.
+Additional services are activated only after their provider label-type mapping is configured.
 
 All calculations use integer cents:
 

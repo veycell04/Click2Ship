@@ -4,19 +4,13 @@ import type {
   LabelDownload,
   LabelType,
   ShippingBalance,
-  ShippingProvider,
+  LabelProvider,
 } from '../types/shipping.js';
+import { LabelProviderError } from '../services/labelProviderError.js';
 
-export class ShippingProviderError extends Error {
-  constructor(
-    public readonly code: string,
-    message: string,
-    public readonly statusCode = 502,
-    public readonly shipAirResponse?: unknown,
-  ) {
-    super(message);
-  }
-}
+/** @deprecated Internal compatibility alias. Prefer LabelProviderError in domain code. */
+export { LabelProviderError as ShippingProviderError };
+const ShippingProviderError = LabelProviderError;
 
 const sanitizeProviderResponse = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(sanitizeProviderResponse);
@@ -132,7 +126,7 @@ const payload = (value: unknown) => {
   return root.data && typeof root.data === 'object' ? object(root.data) : root;
 };
 
-export class ShipAirShippingProvider implements ShippingProvider {
+export class ShipAirLabelProvider implements LabelProvider {
   constructor(
     private readonly baseUrl: string,
     private readonly apiKey: string,
@@ -299,3 +293,6 @@ export class ShipAirShippingProvider implements ShippingProvider {
     return { bytes: new Uint8Array(await response.arrayBuffer()), contentType: 'application/pdf' };
   }
 }
+
+/** @deprecated Internal compatibility alias. */
+export const ShipAirShippingProvider = ShipAirLabelProvider;

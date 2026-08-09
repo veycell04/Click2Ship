@@ -16,9 +16,9 @@ const shipment: CompletedShipment = {
     id: 'label-1',
     trackingNumber: '9400111899',
     labelTypeId: 87,
-    labelTypeName: 'USPS APIs Priority Mail 9201',
+    labelTypeName: 'USPS Priority Mail',
     downloadUrl: '/api/shipping/labels/label-1/download',
-    reference: 'Click2Ship-selection-a',
+    reference: 'ShipDime-selection-a',
     createdAt: '2026-08-06T12:00:00.000Z',
   },
   recipientName: 'Mesut Alver',
@@ -28,6 +28,7 @@ const shipment: CompletedShipment = {
   length: '12',
   width: '9',
   height: '1',
+  price: '$10.76',
 };
 
 beforeEach(() => {
@@ -64,6 +65,11 @@ describe('completed label workflow', () => {
     expect(markup).toContain('9400111899');
     expect(markup).toContain('Recent Labels');
     expect(markup).toContain('Mesut Alver');
+    expect(markup).toContain('USPS Priority Mail');
+    expect(markup).toContain('Carrier: USPS');
+    expect(markup).toContain('Service: Priority Mail');
+    expect(markup).toContain('Price: $10.76');
+    expect(markup.toLowerCase()).not.toContain('shipair');
   });
 
   it('copies tracking through the clipboard API', async () => {

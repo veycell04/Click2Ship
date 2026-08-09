@@ -11,7 +11,7 @@ export interface PricingQuote {
   serviceName: string;
   easyPostShipmentId: string;
   easyPostRateId: string;
-  shipAirLabelTypeId: number;
+  labelTypeId: number;
   referencePriceType: 'EASYPOST_USPS_RETAIL';
   referencePriceCents: number;
   referenceDisplayAmount: string;
@@ -29,7 +29,7 @@ export interface PricingQuote {
 export interface StoredPricingQuote extends PricingQuote {
   input: PricingQuoteInput;
   shipmentSnapshot: CreateLabelInput;
-  shipAirCostCents: number | null;
+  providerCostCents: number | null;
   grossSpreadCents: number | null;
 }
 
@@ -96,10 +96,10 @@ export class LiveEasyPostPricingService implements PricingService {
     });
     const uspsRates = rates.filter((candidate) => candidate.carrier === 'USPS');
     const rate = uspsRates.find(
-      (candidate) => candidate.serviceCode === mapping.easyPostService,
+      (candidate) => candidate.serviceCode === mapping.referenceRateService,
     );
     console.log('SERVICE_MATCH_RESULT', {
-      selectedShipAirLabelTypeId: input.labelTypeId,
+      selectedLabelTypeId: input.labelTypeId,
       resolvedMapping: mapping,
       availableEasyPostRates: uspsRates.map((candidate) => ({
         carrier: candidate.carrier,
@@ -132,11 +132,11 @@ export class LiveEasyPostPricingService implements PricingService {
     const publicQuote: PricingQuote = {
       quoteId: crypto.randomUUID(),
       carrier: 'USPS',
-      serviceCode: mapping.easyPostService,
+      serviceCode: mapping.referenceRateService,
       serviceName: mapping.displayName,
       easyPostShipmentId: rate.providerShipmentId,
       easyPostRateId: rate.providerRateId,
-      shipAirLabelTypeId: mapping.shipAirLabelTypeId,
+      labelTypeId: mapping.providerLabelTypeId,
       referencePriceType: 'EASYPOST_USPS_RETAIL',
       referencePriceCents: rate.retailPriceCents,
       referenceDisplayAmount: money(rate.retailPriceCents),
@@ -155,8 +155,8 @@ export class LiveEasyPostPricingService implements PricingService {
       await this.repository.save({
         ...publicQuote,
         input: structuredClone(input),
-        shipmentSnapshot: { ...structuredClone(input), reference: `Click2Ship-${input.selectionId}` },
-        shipAirCostCents: null,
+        shipmentSnapshot: { ...structuredClone(input), reference: `ShipDime-${input.selectionId}` },
+        providerCostCents: null,
         grossSpreadCents: null,
       });
       console.log('QUOTE_DATABASE_INSERT_COMPLETE', { quoteId: publicQuote.quoteId });

@@ -40,7 +40,7 @@ export interface BackendPriceQuote {
   serviceName: string;
   easyPostShipmentId: string;
   easyPostRateId: string;
-  shipAirLabelTypeId: number;
+  labelTypeId: number;
   referencePriceType: 'EASYPOST_USPS_RETAIL';
   referencePriceCents: number;
   referenceDisplayAmount: string;
@@ -245,7 +245,7 @@ export class Click2ShipBackendClient {
         diagnostic.error = `message/fetch exception: ${error instanceof Error ? error.message : String(error)}; URL: ${diagnostic.labelTypesRequestUrl}; HTTP status: ${diagnostic.labelTypesHttpStatus ?? 0}; response text: ${diagnostic.rawLabelTypesResponse || '(empty)'}`;
       }
     }
-    console.log('Click2Ship backend connection diagnostic', diagnostic);
+    console.log('ShipDime backend connection diagnostic', diagnostic);
     return diagnostic;
   }
 
@@ -382,7 +382,7 @@ export class Click2ShipBackendClient {
       height,
       sender: shippingAddress(sender),
       recipient: shippingAddress(recipient),
-      reference: `Click2Ship-${selectionId}`,
+      reference: `ShipDime-${selectionId}`,
     };
   }
 
@@ -459,10 +459,10 @@ export class Click2ShipBackendClient {
       height,
       sender: shippingAddress(sender),
       recipient: shippingAddress(recipient),
-      reference: `Click2Ship-${selectionId}`,
+      reference: `ShipDime-${selectionId}`,
     };
     if (import.meta.env.DEV || import.meta.env.VITE_APP_ENV === 'development') {
-      console.log('Outgoing Click2Ship create-label payload', {
+      console.log('Outgoing ShipDime create-label payload', {
         ...payload,
         labelTypeIdType: typeof payload.labelTypeId,
         weightType: typeof payload.weight,

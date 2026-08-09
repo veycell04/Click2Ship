@@ -44,7 +44,7 @@ chrome.runtime.onInstalled.addListener(() => {
     }
     chrome.contextMenus.create({
       id: MENU_ID,
-      title: 'Create Shipping Label',
+      title: 'Create shipping label with ShipDime',
       contexts: ['selection'],
     });
     if (chrome.runtime.lastError) {

@@ -36,7 +36,7 @@ export class StripeCheckoutPaymentProvider implements PaymentProvider {
           price_data: {
             currency: input.currency,
             unit_amount: input.amountCents,
-            product_data: { name: `Click2Ship ${input.serviceName} Label` },
+            product_data: { name: `ShipDime — ${input.serviceName}` },
           },
         },
       ],

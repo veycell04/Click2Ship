@@ -24,12 +24,12 @@ describe('PriceCard', () => {
     expect(markup).toContain('USPS Priority Mail');
     expect(markup).toContain('USPS retail');
     expect(markup).toContain('$13.45');
-    expect(markup).toContain('Click2Ship price');
+    expect(markup).toContain('ShipDime price');
     expect(markup).toContain('$10.76');
     expect(markup).toContain('You save');
     expect(markup).toContain('$2.69');
     expect(markup).toContain('20% below USPS retail');
-    expect(markup.match(/Calculated securely by Click2Ship/g)).toHaveLength(1);
+    expect(markup.match(/Calculated securely by ShipDime/g)).toHaveLength(1);
   });
 
   it('renders focused loading and error states without stale prices', () => {

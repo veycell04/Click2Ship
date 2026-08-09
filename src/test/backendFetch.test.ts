@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { backendFetch, handleBackendRequest } from '../background/backendFetch';
+import { apiUrl } from '../config/api';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -12,7 +13,7 @@ describe('background backend transport', () => {
           new Response(
             JSON.stringify({
               success: true,
-              labelTypes: [{ id: 87, name: 'USPS APIs Priority Mail 9201', description: '' }],
+              labelTypes: [{ id: 87, name: 'USPS Priority Mail', description: '' }],
             }),
             { status: 200, headers: { 'Content-Type': 'application/json' } },
           ),
@@ -24,7 +25,7 @@ describe('background backend transport', () => {
       status: 200,
       data: {
         success: true,
-        labelTypes: [{ id: 87, name: 'USPS APIs Priority Mail 9201', description: '' }],
+        labelTypes: [{ id: 87, name: 'USPS Priority Mail', description: '' }],
       },
     });
   });
@@ -67,7 +68,7 @@ describe('background backend transport', () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://127.0.0.1:3001/api/pricing/quote',
+      apiUrl('/api/pricing/quote'),
       expect.objectContaining({ method: 'POST' }),
     );
   });

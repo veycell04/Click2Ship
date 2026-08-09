@@ -30,9 +30,9 @@ export function LabelSuccessScreen({
         <img
           className="brand-mark"
           src="/icons/icon48.png"
-          alt="Click2Ship shipping package icon"
+          alt="ShipDime shipping package icon"
         />
-        <strong>Click2Ship</strong>
+        <strong>ShipDime</strong>
       </header>
       <section className="success-card">
         <div className="success-icon">✓</div>
@@ -101,7 +101,11 @@ export function LabelSuccessScreen({
                 {new Date(entry.label.createdAt).toLocaleString()}
               </span>
               <span>
-                {entry.label.trackingNumber} · {entry.label.labelTypeName}
+                Carrier: USPS · Service: {entry.label.labelTypeName.replace(/^USPS\s+/i, '')}
+              </span>
+              <span>
+                Tracking: {entry.label.trackingNumber}
+                {entry.price ? ` · Price: ${entry.price}` : ''}
               </span>
             </div>
             <button className="secondary compact" onClick={() => onHistoryDownload(entry)}>

@@ -217,7 +217,7 @@ describe('ShipAirShippingProvider', () => {
     await expect(provider.getLabel('7')).rejects.toMatchObject({
       code: 'SHIPAIR_VALIDATION_ERROR',
       statusCode: 422,
-      shipAirResponse: { message: 'Invalid phone', errors: { to_phone: ['Invalid'] } },
+      providerResponse: { message: 'Invalid phone', errors: { to_phone: ['Invalid'] } },
     });
   });
 

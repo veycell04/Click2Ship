@@ -645,6 +645,7 @@ export function App() {
             length: parcel.length,
             width: parcel.width,
             height: parcel.height,
+            price: paymentPrice?.customerDisplayAmount,
           };
           await saveCompletedShipment(completed);
           setCompletedShipment(completed);
@@ -663,7 +664,7 @@ export function App() {
       }
       if (attempts >= 150 && !stopped) {
         stopped = true;
-        setPaymentStatus('Payment status timed out. Reopen Click2Ship to check this order again.');
+        setPaymentStatus('Payment status timed out. Reopen ShipDime to check this order again.');
       }
     };
     void poll();
@@ -672,7 +673,7 @@ export function App() {
       stopped = true;
       window.clearInterval(timer);
     };
-  }, [orderId, completedShipment, shipmentSession.id, recipient, parcel]);
+  }, [orderId, completedShipment, shipmentSession.id, recipient, parcel, paymentPrice]);
 
   const downloadLabel = async (shipment = completedShipment) => {
     if (!shipment) return;
@@ -743,9 +744,9 @@ export function App() {
           <img
             className="brand-mark"
             src="/icons/icon48.png"
-            alt="Click2Ship shipping package icon"
+            alt="ShipDime shipping package icon"
           />
-          <strong>Click2Ship</strong>
+          <strong>ShipDime</strong>
         </header>
         <section className="success-card">
           <div className="success-icon">✓</div>
@@ -815,9 +816,8 @@ export function App() {
                   {entry.destinationCity}, {entry.destinationState} ·{' '}
                   {new Date(entry.label.createdAt).toLocaleString()}
                 </span>
-                <span>
-                  {entry.label.trackingNumber} · {entry.label.labelTypeName}
-                </span>
+                <span>Carrier: USPS · Service: {entry.label.labelTypeName.replace(/^USPS\s+/i, '')}</span>
+                <span>Tracking: {entry.label.trackingNumber}{entry.price ? ` · Price: ${entry.price}` : ''}</span>
               </div>
               <button className="secondary compact" onClick={() => void downloadLabel(entry)}>
                 Download
@@ -838,10 +838,10 @@ export function App() {
         <img
           className="brand-mark"
           src="/icons/icon48.png"
-          alt="Click2Ship shipping package icon"
+          alt="ShipDime shipping package icon"
         />
         <div>
-          <strong>Click2Ship</strong>
+          <strong>ShipDime</strong>
           <span>Test workflow</span>
         </div>
         <span className="demo-pill">DEMO</span>
@@ -853,7 +853,7 @@ export function App() {
         <p>Review the selected address, add package details, and generate a test label.</p>
         {shipmentSession.status === 'idle' && !shipmentSession.rawSelection && (
           <div className="warning-banner" role="status">
-            Select an address on a webpage and right-click Create Shipping Label
+            Select an address on a webpage and right-click Create shipping label with ShipDime
           </div>
         )}
         {(shipmentSession.status === 'reading' || shipmentSession.status === 'parsing') && (
@@ -869,7 +869,7 @@ export function App() {
         {developmentDiagnosticsEnabled && (
           <details className="source backend-diagnostics">
             <summary>Backend diagnostics</summary>
-            <pre>{`Build timestamp: ${buildTimestamp}\nAPI base URL: ${click2ShipBackendClient.apiBaseUrl}\nHealth request URL: ${connectionDiagnostic?.healthRequestUrl ?? click2ShipBackendClient.urlFor('/api/health')}\nHealth result: ${connectionDiagnostic?.healthResult ?? backendHealth}\nLabel-types request URL: ${connectionDiagnostic?.labelTypesRequestUrl ?? click2ShipBackendClient.urlFor('/api/shipping/label-types')}\nLabel-types HTTP status: ${connectionDiagnostic?.labelTypesHttpStatus ?? labelTypesResponseStatus ?? 'not received'}\nRaw label-types response: ${connectionDiagnostic?.rawLabelTypesResponse || '(empty)'}\nParsed label-type count: ${connectionDiagnostic?.parsedLabelTypes.length ?? 0}\nCurrent extension ID: ${typeof chrome !== 'undefined' && chrome.runtime?.id ? chrome.runtime.id : 'unavailable'}\nCurrent extension origin: ${window.location.origin}\nSide-panel message result: ${connectionDiagnostic?.sidePanelMessageResult ?? 'not received'}\nBackground fetch status: ${connectionDiagnostic?.backgroundFetchStatus ?? 'not received'}\nFetch error: ${connectionDiagnostic?.error || 'none'}\nHealth HTTP status: ${healthResponseStatus ?? 'not received'}\nLabel-types state: ${labelTypesStatus}\nCreate-label request URL: ${createLabelDiagnostic?.requestUrl || click2ShipBackendClient.urlFor('/api/shipping/labels')}\nCreate-label HTTP status: ${createLabelDiagnostic?.httpStatus ?? 'not requested'}\nCreate-label response body: ${createLabelDiagnostic?.responseBody || '(empty)'}\nCreate-label parsed error: ${JSON.stringify(createLabelDiagnostic?.parsedError ?? null)}\nShipAir status: ${createLabelDiagnostic?.shipAirStatus ?? 'not received'}\nShipAir response: ${JSON.stringify(createLabelDiagnostic?.shipAirResponse ?? null)}`}</pre>
+            <pre>{`Build timestamp: ${buildTimestamp}\nAPI base URL: ${click2ShipBackendClient.apiBaseUrl}\nHealth request URL: ${connectionDiagnostic?.healthRequestUrl ?? click2ShipBackendClient.urlFor('/api/health')}\nHealth result: ${connectionDiagnostic?.healthResult ?? backendHealth}\nLabel-types request URL: ${connectionDiagnostic?.labelTypesRequestUrl ?? click2ShipBackendClient.urlFor('/api/shipping/label-types')}\nLabel-types HTTP status: ${connectionDiagnostic?.labelTypesHttpStatus ?? labelTypesResponseStatus ?? 'not received'}\nRaw label-types response: ${connectionDiagnostic?.rawLabelTypesResponse || '(empty)'}\nParsed label-type count: ${connectionDiagnostic?.parsedLabelTypes.length ?? 0}\nCurrent extension ID: ${typeof chrome !== 'undefined' && chrome.runtime?.id ? chrome.runtime.id : 'unavailable'}\nCurrent extension origin: ${window.location.origin}\nSide-panel message result: ${connectionDiagnostic?.sidePanelMessageResult ?? 'not received'}\nBackground fetch status: ${connectionDiagnostic?.backgroundFetchStatus ?? 'not received'}\nFetch error: ${connectionDiagnostic?.error || 'none'}\nHealth HTTP status: ${healthResponseStatus ?? 'not received'}\nLabel-types state: ${labelTypesStatus}\nCreate-label request URL: ${createLabelDiagnostic?.requestUrl || click2ShipBackendClient.urlFor('/api/shipping/labels')}\nCreate-label HTTP status: ${createLabelDiagnostic?.httpStatus ?? 'not requested'}\nCreate-label response body: ${createLabelDiagnostic?.responseBody || '(empty)'}\nCreate-label parsed error: ${JSON.stringify(createLabelDiagnostic?.parsedError ?? null)}`}</pre>
             <pre>{`Pricing request URL: ${pricingDiagnostic.url}\nPricing HTTP status: ${pricingDiagnostic.status ?? 'not requested'}\nRaw pricing response: ${pricingDiagnostic.rawResponse || '(empty)'}\nParsed amount: ${pricingDiagnostic.parsedAmount ?? 'not received'}\nPricing mode: ${pricingDiagnostic.pricingMode || 'not received'}`}</pre>
             <button
               type="button"

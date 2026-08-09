@@ -34,6 +34,7 @@ export interface CompletedShipment {
   length: string;
   width: string;
   height: string;
+  price?: string;
 }
 
 const isCompletedShipment = (value: unknown): value is CompletedShipment => {

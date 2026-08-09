@@ -12,7 +12,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBound
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('Click2Ship side panel render failed', error, info);
+    console.error('ShipDime side panel render failed', error, info);
   }
 
   render() {
@@ -21,7 +21,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBound
     return (
       <main className="app error-screen">
         <section className="error-card" role="alert">
-          <h1>Click2Ship encountered an error</h1>
+          <h1>ShipDime encountered an error</h1>
           <p>{this.state.error.message}</p>
           {import.meta.env.DEV && <pre>{this.state.error.stack}</pre>}
         </section>

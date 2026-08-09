@@ -4,7 +4,7 @@ import { App } from './App';
 import { ErrorBoundary } from './ErrorBoundary';
 import './styles.css';
 
-console.log('Click2Ship side panel script loaded');
+console.log('ShipDime side panel script loaded');
 const mountElement = document.getElementById('root');
 console.log('Mount element:', mountElement);
 
@@ -17,5 +17,5 @@ if (mountElement) {
     </StrictMode>,
   );
 } else {
-  console.error('Click2Ship side panel root element was not found');
+  console.error('ShipDime side panel root element was not found');
 }

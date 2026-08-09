@@ -41,15 +41,16 @@ describe('EasyPost USPS retail pricing', () => {
       const quote = await serviceFor([rate('Priority', retail)]).service.getQuote(input);
       expect(quote).toMatchObject({
         carrier: 'USPS', serviceCode: 'Priority', serviceName: 'USPS Priority Mail',
-        shipAirLabelTypeId: 87, referencePriceCents: retail,
+        labelTypeId: 87, referencePriceCents: retail,
         customerPriceCents: customer, savingsCents: savings, savingsPercent: 20,
       });
+      expect(quote).not.toHaveProperty('shipAirLabelTypeId');
     },
   );
 
-  it('maps the real ShipAir IDs to exact EasyPost service codes', () => {
-    expect(getShippingServiceMapping(87)).toMatchObject({ easyPostService: 'Priority' });
-    expect(getShippingServiceMapping(78)).toMatchObject({ easyPostService: 'GroundAdvantage' });
+  it('maps configured provider IDs to exact EasyPost service codes', () => {
+    expect(getShippingServiceMapping(87)).toMatchObject({ referenceRateService: 'Priority' });
+    expect(getShippingServiceMapping(78)).toMatchObject({ referenceRateService: 'GroundAdvantage' });
   });
 
   it('finds GroundAdvantage retail and prices $5.00 at $4.00', async () => {
@@ -59,7 +60,7 @@ describe('EasyPost USPS retail pricing', () => {
     ]).service.getQuote({ ...input, labelTypeId: 78 });
     expect(quote).toMatchObject({
       serviceCode: 'GroundAdvantage', serviceName: 'USPS Ground Advantage',
-      shipAirLabelTypeId: 78, referencePriceCents: 500,
+      labelTypeId: 78, referencePriceCents: 500,
       customerPriceCents: 400, savingsCents: 100,
     });
   });
@@ -98,7 +99,7 @@ describe('EasyPost USPS retail pricing', () => {
     expect(await service.getStoredQuote(priorityAgain.quoteId)).toMatchObject({ serviceCode: 'Priority' });
   });
 
-  it('rejects an unknown ShipAir label type before rating', async () => {
+  it('rejects an unknown provider label type before rating', async () => {
     await expect(
       serviceFor([rate('Priority', 800)]).service.getQuote({ ...input, labelTypeId: 999 }),
     ).rejects.toBeInstanceOf(UnsupportedPricingServiceError);

@@ -21,7 +21,7 @@ export class TikTokMarketplaceAdapter implements MarketplaceAdapter {
       heading.closest<HTMLElement>('section, article, address, [role="group"], [role="region"]') ??
       heading.parentElement;
     const rawText = container?.innerText?.trim() ?? '';
-    console.debug('Click2Ship TikTok raw address block', {
+    console.debug('ShipDime TikTok raw address block', {
       headingNode: heading,
       containerNode: container,
       rawText,

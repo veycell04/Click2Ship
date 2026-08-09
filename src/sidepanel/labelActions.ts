@@ -18,7 +18,7 @@ export function downloadPdf(blob: Blob, trackingNumber: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `Click2Ship-${trackingNumber}.pdf`;
+  link.download = `ShipDime-${trackingNumber}.pdf`;
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
 }
