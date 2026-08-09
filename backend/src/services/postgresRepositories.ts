@@ -136,11 +136,10 @@ export class PostgresPricingQuoteRepository implements PricingQuoteRepository {
           id, selection_id, easy_post_shipment_id, easy_post_rate_id, carrier,
           service_code, service_name, ship_air_label_type_id, reference_price_cents,
           customer_price_cents, savings_cents, savings_percent, currency,
-          shipment_snapshot, document, expires_at, benchmark_price_cents,
-          carrier_rate_cents, gross_spread_cents, fulfillment_provider, selected_rate_snapshot
+          shipment_snapshot, document, expires_at
         ) VALUES (
           $1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
-          $14::jsonb, $15::jsonb, $16, $17, $18, $19, $20, $21::jsonb
+          $14::jsonb, $15::jsonb, $16
         )`,
         [
           quote.quoteId,
@@ -159,11 +158,6 @@ export class PostgresPricingQuoteRepository implements PricingQuoteRepository {
           JSON.stringify(quote.shipmentSnapshot),
           JSON.stringify(quote),
           quote.expiresAt,
-          quote.benchmarkPriceCents,
-          quote.carrierRateCents,
-          quote.grossSpreadCents,
-          quote.fulfillmentProvider,
-          JSON.stringify(quote.selectedRateSnapshot),
         ],
       );
       await client.query('COMMIT');
