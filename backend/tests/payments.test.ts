@@ -44,6 +44,7 @@ const label: CreatedLabel = {
 class FakeShipping implements ShippingProvider {
   createCount = 0;
   fail = false;
+  lastInput: CreateLabelInput | null = null;
   async getBalance() {
     return { balance: 100, currency: 'USD' };
   }
@@ -51,7 +52,7 @@ class FakeShipping implements ShippingProvider {
     return [{ id: 87, name: 'Priority Mail', description: '' }];
   }
   async createLabel(input: CreateLabelInput) {
-    void input;
+    this.lastInput = structuredClone(input);
     this.createCount += 1;
     if (this.fail) throw new Error('ShipAir unavailable');
     return label;
@@ -133,11 +134,11 @@ const quotePayload = (override: Record<string, unknown> = {}) => ({
   ...override,
 });
 
-const createQuote = async (app: Awaited<ReturnType<typeof setup>>['app']) => {
+const createQuote = async (app: Awaited<ReturnType<typeof setup>>['app'], override: Record<string, unknown> = {}) => {
   const response = await app.inject({
     method: 'POST',
     url: '/api/pricing/quote',
-    payload: quotePayload(),
+    payload: quotePayload(override),
   });
   expect(response.statusCode).toBe(200);
   return response.json().quote as { quoteId: string };
@@ -389,8 +390,25 @@ describe('payment checkout and fulfillment', () => {
       payload: '{}',
     });
     expect(shipping.createCount).toBe(1);
+    expect(shipping.lastInput?.labelTypeId).toBe(87);
     const status = await app.inject({ method: 'GET', url: `/api/orders/${orderId}/status` });
     expect(status.json().order).toMatchObject({ status: 'label_created', trackingNumber: '9400' });
+    await app.close();
+  });
+
+  it('creates the selected Ground Advantage label through ShipAir', async () => {
+    const { app, payment, shipping } = await setup();
+    const quote = await createQuote(app, { labelTypeId: 78 });
+    await app.inject({ method: 'POST', url: '/api/payments/checkout', payload: { quoteId: quote.quoteId } });
+    payment.event.paymentStatus = 'paid';
+    await app.inject({
+      method: 'POST',
+      url: '/api/webhooks/stripe',
+      headers: { 'stripe-signature': 'valid', 'content-type': 'application/json' },
+      payload: '{}',
+    });
+    expect(shipping.createCount).toBe(1);
+    expect(shipping.lastInput?.labelTypeId).toBe(78);
     await app.close();
   });
 

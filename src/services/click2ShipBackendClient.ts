@@ -33,27 +33,15 @@ export interface BackendConnectionDiagnostic {
   backgroundFetchStatus: number | null;
   error: string;
 }
-export interface BackendRateOption {
+export interface BackendPriceQuote {
   quoteId: string;
-  rateId: string;
-  shipmentId: string;
-  carrier: 'USPS' | 'UPS' | 'FedEx';
-  serviceCode: string;
+  labelTypeId: number;
   serviceName: string;
-  benchmarkPriceCents: number;
-  benchmarkDisplayAmount: string;
   customerPriceCents: number;
   customerDisplayAmount: string;
   savingsCents: number;
   savingsDisplayAmount: string;
   savingsPercent: number;
-  deliveryDays: number | null;
-  deliveryDate: string | null;
-  guaranteed: boolean;
-}
-export interface BackendPriceQuote extends BackendRateOption {
-  bestRate: BackendRateOption;
-  alternatives: BackendRateOption[];
   referencePriceCents: number;
   referenceDisplayAmount: string;
   currency: string;

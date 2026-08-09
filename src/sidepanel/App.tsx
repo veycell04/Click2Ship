@@ -40,8 +40,7 @@ import { emptyShipmentSession, shipmentSessionReducer } from './shipmentSession'
 import { copyText, downloadPdf, openPdfForPrint } from './labelActions';
 import { createPricingInputKey, describePricingError, PricingRequestGate } from './pricingState';
 import { PriceCard } from './PriceCard';
-import { ShippingServiceSelect } from './ShippingServiceSelect';
-import { selectShippingService } from './shippingServiceOptions';
+import { LabelTypeSelect } from './LabelTypeSelect';
 import {
   getPricingRequirements,
   groupMissingPricingRequirements,
@@ -181,8 +180,8 @@ export function App() {
   const [finalConfirmed, setFinalConfirmed] = useState(false);
   const [completedShipment, setCompletedShipment] = useState<CompletedShipment | null>(null);
   const [recentLabels, setRecentLabels] = useState<CompletedShipment[]>([]);
-  const [, setLabelTypes] = useState<BackendLabelType[]>([]);
-  const [selectedLabelTypeId] = useState<string>('87');
+  const [labelTypes, setLabelTypes] = useState<BackendLabelType[]>([]);
+  const [selectedLabelTypeId, setSelectedLabelTypeId] = useState<string>('');
   const [creatingLabel, setCreatingLabel] = useState(false);
   const [labelError, setLabelError] = useState('');
   const [backendHealth, setBackendHealth] = useState('not checked');
@@ -408,6 +407,11 @@ export function App() {
       throw new Error(`Expected labelTypes array, received: ${JSON.stringify(body)}`);
     }
     setLabelTypes(body.labelTypes);
+    setSelectedLabelTypeId((current) =>
+      body.labelTypes.some((labelType) => String(labelType.id) === current)
+        ? current
+        : String(body.labelTypes[0]?.id ?? ''),
+    );
     setLabelTypesStatus(`loaded ${body.labelTypes.length}`);
     setLabelError('');
   }, []);
@@ -459,9 +463,6 @@ export function App() {
   const canRequestPricing = pricingReady && pricingInput.selectionId !== '';
   const pricingInputKey = createPricingInputKey(pricingInput);
   const currentPrice = pricingReady && quotedInputKey === pricingInputKey ? paymentPrice : null;
-  const shippingServiceOptions = currentPrice
-    ? [currentPrice.bestRate, ...currentPrice.alternatives]
-    : [];
   const displayedPricingStatus =
     pricingReady && paymentPrice !== null && quotedInputKey !== pricingInputKey
       ? 'loading'
@@ -971,9 +972,7 @@ export function App() {
               <p>Use packed dimensions</p>
             </div>
           </div>
-          <label
-            className={`wide${missingPricingByKey.has('service.labelType') && touchedPricingFields.has('service.labelType') ? ' field-missing' : ''}`}
-          >
+          <label className="wide">
             <span>Package preset</span>
             <select
               value={parcel.preset}
@@ -986,16 +985,21 @@ export function App() {
               ))}
             </select>
           </label>
-          <ShippingServiceSelect
-            options={shippingServiceOptions}
-            selectedRateId={currentPrice?.rateId ?? ''}
-            status={displayedPricingStatus}
-            pricingReady={pricingReady}
-            onSelect={(option) => {
-              if (!paymentPrice) return;
-              setPaymentPrice(selectShippingService(paymentPrice, option));
-            }}
-          />
+          <label
+            className={`wide${missingPricingByKey.has('service.labelType') && touchedPricingFields.has('service.labelType') ? ' field-missing' : ''}`}
+          >
+            <span>Label type</span>
+            <LabelTypeSelect
+              id="label-type"
+              labelTypes={labelTypes}
+              selectedLabelTypeId={selectedLabelTypeId}
+              onChange={(value) => {
+                setSelectedLabelTypeId(value);
+                setTouchedPricingFields((current) => new Set(current).add('service.labelType'));
+              }}
+              invalid={missingPricingByKey.has('service.labelType') && touchedPricingFields.has('service.labelType')}
+            />
+          </label>
           <div className="dimensions">
             {(['weight', 'length', 'width', 'height'] as const).map((key) => (
               <label
@@ -1040,7 +1044,7 @@ export function App() {
           customerPrice={currentPrice?.customerDisplayAmount ?? ''}
           savings={currentPrice?.savingsDisplayAmount ?? ''}
           savingsPercent={currentPrice?.savingsPercent ?? 0}
-          deliveryDays={currentPrice?.deliveryDays ?? null}
+          deliveryDays={null}
           expiresAt={currentPrice?.expiresAt ?? ''}
           status={displayedPricingStatus}
           errorMessage={pricingError}

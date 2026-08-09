@@ -1,5 +1,6 @@
 import type { CreateLabelInput } from '../types/shipping.js';
 import type { RateProvider, ReferenceRate, SupportedCarrier } from './rateProvider.js';
+import { getShippingServiceMapping } from './shippingServiceMapping.js';
 
 export type PricingQuoteInput = Omit<CreateLabelInput, 'reference'>;
 export interface ShippingRateOption {
@@ -9,18 +10,18 @@ export interface ShippingRateOption {
   savingsCents: number; savingsDisplayAmount: string; savingsPercent: number;
   deliveryDays: number | null; deliveryDate: string | null; guaranteed: boolean;
 }
-export interface PricingQuote extends ShippingRateOption {
-  bestRate: ShippingRateOption;
-  alternatives: ShippingRateOption[];
+export interface PricingQuote {
+  quoteId: string; labelTypeId: number; serviceName: string;
+  customerPriceCents: number; customerDisplayAmount: string;
+  savingsCents: number; savingsDisplayAmount: string; savingsPercent: number;
   currency: 'usd'; pricingMode: 'live'; expiresAt: string;
-  // Compatibility aliases for the existing PriceCard during rollout.
   referencePriceCents: number; referenceDisplayAmount: string;
 }
 export interface StoredPricingQuote extends ShippingRateOption {
   input: PricingQuoteInput; shipmentSnapshot: CreateLabelInput;
   providerCarrier: string; carrierRateCents: number; grossSpreadCents: number;
   currency: 'usd'; pricingMode: 'live'; expiresAt: string;
-  fulfillmentProvider: 'easypost'; selectedRateSnapshot: ShippingRateOption;
+  fulfillmentProvider: 'shipair'; selectedRateSnapshot: ShippingRateOption;
   labelTypeId: number; easyPostShipmentId: string; easyPostRateId: string;
   referencePriceCents: number; referenceDisplayAmount: string;
 }
@@ -60,30 +61,32 @@ export class LiveEasyPostPricingService implements PricingService {
   }
   async getQuote(input: PricingQuoteInput): Promise<PricingQuote> {
     console.log('PRICING_STAGE_START');
+    const selectedService = getShippingServiceMapping(input.labelTypeId);
+    if (!selectedService) throw new UnsupportedPricingServiceError(`Unsupported label type: ${input.labelTypeId}`);
     const rates = (await this.rateProvider.getRates(input)).sort((a, b) => a.rateCents - b.rateCents);
     if (!rates.length) throw new PricingRateUnavailableError('No eligible shipping rates are available for this shipment.', []);
     const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
-    const options = rates.slice(0, 5).map((rate) => this.option(rate));
+    const cheapestRate = rates[0]!;
+    const benchmark = this.option(cheapestRate);
+    const quoteId = crypto.randomUUID();
     try {
-      for (let index = 0; index < options.length; index += 1) {
-        const option = options[index]!; const rate = rates[index]!;
-        await this.repository.save({ ...option, input: structuredClone(input),
-          shipmentSnapshot: { ...structuredClone(input), reference: `ShipDime-${input.selectionId}` },
-          providerCarrier: rate.providerCarrier, carrierRateCents: option.benchmarkPriceCents,
-          grossSpreadCents: option.customerPriceCents - option.benchmarkPriceCents,
-          currency: 'usd', pricingMode: 'live', expiresAt, fulfillmentProvider: 'easypost',
-          selectedRateSnapshot: structuredClone(option), labelTypeId: input.labelTypeId,
-          easyPostShipmentId: option.shipmentId, easyPostRateId: option.rateId,
-          referencePriceCents: option.benchmarkPriceCents,
-          referenceDisplayAmount: option.benchmarkDisplayAmount });
-      }
+      await this.repository.save({ ...benchmark, quoteId, serviceName: selectedService.displayName,
+        input: structuredClone(input), shipmentSnapshot: { ...structuredClone(input), reference: `ShipDime-${input.selectionId}` },
+        providerCarrier: cheapestRate.providerCarrier, carrierRateCents: benchmark.benchmarkPriceCents,
+        grossSpreadCents: benchmark.customerPriceCents - benchmark.benchmarkPriceCents,
+        currency: 'usd', pricingMode: 'live', expiresAt, fulfillmentProvider: 'shipair',
+        selectedRateSnapshot: structuredClone(benchmark), labelTypeId: input.labelTypeId,
+        easyPostShipmentId: benchmark.shipmentId, easyPostRateId: benchmark.rateId,
+        referencePriceCents: benchmark.benchmarkPriceCents, referenceDisplayAmount: benchmark.benchmarkDisplayAmount });
     } catch (error) { throw new QuotePersistenceError(error); }
-    const best = options[0]!;
-    console.log('QUOTE_CALCULATION_COMPLETE', { carrier: best.carrier, service: best.serviceCode,
-      benchmarkRateCents: best.benchmarkPriceCents, customerPriceCents: best.customerPriceCents,
-      savingsCents: best.savingsCents });
-    return { ...best, bestRate: best, alternatives: options.slice(1), currency: 'usd', pricingMode: 'live', expiresAt,
-      referencePriceCents: best.benchmarkPriceCents, referenceDisplayAmount: best.benchmarkDisplayAmount };
+    console.log('RATE_BENCHMARK_RESULT', { selectedLabelTypeId: input.labelTypeId, eligibleRateCount: rates.length,
+      cheapestCarrier: cheapestRate.carrier, cheapestService: cheapestRate.serviceCode,
+      cheapestRateCents: benchmark.benchmarkPriceCents, customerPriceCents: benchmark.customerPriceCents });
+    return { quoteId, labelTypeId: input.labelTypeId, serviceName: selectedService.displayName,
+      customerPriceCents: benchmark.customerPriceCents, customerDisplayAmount: benchmark.customerDisplayAmount,
+      savingsCents: benchmark.savingsCents, savingsDisplayAmount: benchmark.savingsDisplayAmount,
+      savingsPercent: benchmark.savingsPercent, currency: 'usd', pricingMode: 'live', expiresAt,
+      referencePriceCents: benchmark.benchmarkPriceCents, referenceDisplayAmount: benchmark.benchmarkDisplayAmount };
   }
   getStoredQuote(id: string) { return this.repository.findById(id); }
 }

@@ -1,6 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { vi } from 'vitest';
 import { PriceCard } from '../sidepanel/PriceCard';
 import { getQuoteTimeLabel } from '../sidepanel/priceCardTime';
 
@@ -31,7 +30,6 @@ describe('PriceCard', () => {
     expect(markup).toContain('You save');
     expect(markup).toContain('$2.69');
     expect(markup).toContain('20% less');
-    expect(markup).toContain('SELECTED SERVICE');
     expect(markup).toContain('Estimated delivery: 2 days');
     expect(markup.match(/Calculated securely by ShipDime/g)).toHaveLength(1);
     expect(markup).not.toMatch(/EasyPost|ShipAir/i);
@@ -45,14 +43,6 @@ describe('PriceCard', () => {
     expect(error).toContain('Unable to calculate shipping price.');
     expect(error).toContain('Retry');
     expect(error).not.toContain('$13.45');
-  });
-
-  it('allows an alternative carrier quote to be selected', () => {
-    const onSelect = vi.fn();
-    const alternative = { quoteId: 'quote-ups', rateId: 'rate-ups', shipmentId: 'shp-1', carrier: 'UPS' as const, serviceCode: 'Ground', serviceName: 'UPS Ground', benchmarkPriceCents: 915, benchmarkDisplayAmount: '$9.15', customerPriceCents: 732, customerDisplayAmount: '$7.32', savingsCents: 183, savingsDisplayAmount: '$1.83', savingsPercent: 20, deliveryDays: 3, deliveryDate: null, guaranteed: false };
-    const markup = renderToStaticMarkup(<PriceCard {...quoteProps} options={[alternative]} selectedQuoteId="" onSelect={onSelect} />);
-    expect(markup).toContain('UPS Ground');
-    expect(markup).toContain('$7.32');
   });
 
   it('derives the remaining validity from expiresAt', () => {

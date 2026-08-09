@@ -644,25 +644,6 @@ button {
   background: transparent;
   color: #53647a;
 }
-.rate-options {
-  display: grid;
-  gap: 8px;
-  margin-top: 14px;
-}
-.rate-options h3 {
-  margin: 0;
-  font-size: 13px;
-}
-.rate-options button {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 3px 8px;
-  width: 100%;
-  text-align: left;
-}
-.rate-options button span { font-variant-numeric: tabular-nums; }
-.rate-options button small { grid-column: 1 / -1; color: #18794e; }
-.rate-options button.selected { border-color: #239b61; background: #f2fbf6; }
 @media (max-width: 350px) {
   .field-grid {
     grid-template-columns: 1fr;

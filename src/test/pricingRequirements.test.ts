@@ -14,10 +14,10 @@ const validDraft = () => ({
 });
 
 describe('pricing readiness requirements', () => {
-  it('does not require a legacy provider label type for rate shopping', () => {
+  it('requires the selected ShipAir label type before pricing', () => {
     const draft = validDraft();
     draft.selectedLabelTypeId = '';
-    expect(getPricingRequirements(draft).every((item) => item.valid)).toBe(true);
+    expect(getPricingRequirements(draft).find((item) => item.key === 'service.labelType')?.valid).toBe(false);
   });
 
   it('shows minimum weight and recipient ZIP guidance', () => {

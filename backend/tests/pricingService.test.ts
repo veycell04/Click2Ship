@@ -13,25 +13,30 @@ const serviceFor = (rates: ReferenceRate[]) => new LiveEasyPostPricingService(
   { getRates: async () => rates } satisfies RateProvider, new InMemoryPricingQuoteRepository(), 20,
 );
 
-describe('multi-carrier cheapest-rate pricing', () => {
+describe('hidden multi-carrier benchmark pricing', () => {
   it.each([[855, 684, 171], [818, 654, 164], [1206, 965, 241]])(
     'prices %s cents at exactly 20%% off', async (benchmark, customer, savings) => {
       const quote = await serviceFor([rate('FedEx', 'SMART_POST', benchmark)]).getQuote(input);
-      expect(quote.bestRate).toMatchObject({ benchmarkPriceCents: benchmark, customerPriceCents: customer, savingsCents: savings });
+      expect(quote).toMatchObject({ referencePriceCents: benchmark, customerPriceCents: customer, savingsCents: savings, labelTypeId: 87, serviceName: 'USPS Priority Mail' });
     },
   );
   it('sorts USPS, FedEx, and UPS and selects the cheapest eligible rate', async () => {
     const quote = await serviceFor([
       rate('USPS', 'GroundAdvantage', 882), rate('UPS', 'Ground', 915), rate('FedEx', 'SMART_POST', 855),
     ]).getQuote(input);
-    expect(quote.bestRate).toMatchObject({ carrier: 'FedEx', rateId: 'rate_FedEx_SMART_POST', benchmarkPriceCents: 855, customerPriceCents: 684 });
-    expect(quote.alternatives.map((option) => option.carrier)).toEqual(['USPS', 'UPS']);
+    expect(quote).toMatchObject({ labelTypeId: 87, serviceName: 'USPS Priority Mail', referencePriceCents: 855, customerPriceCents: 684 });
+    expect(quote).not.toHaveProperty('carrier');
+    expect(quote).not.toHaveProperty('alternatives');
   });
-  it('persists every selectable option with internal subsidy analytics', async () => {
+  it('persists the cheapest benchmark internally for ShipAir fulfillment', async () => {
     const repository = new InMemoryPricingQuoteRepository();
     const service = new LiveEasyPostPricingService({ getRates: async () => [rate('FedEx', 'SMART_POST', 855), rate('USPS', 'Priority', 1206)] }, repository);
     const quote = await service.getQuote(input);
-    const selected = await service.getStoredQuote(quote.alternatives[0]!.quoteId);
-    expect(selected).toMatchObject({ easyPostRateId: 'rate_USPS_Priority', carrierRateCents: 1206, customerPriceCents: 965, grossSpreadCents: -241, fulfillmentProvider: 'easypost' });
+    const selected = await service.getStoredQuote(quote.quoteId);
+    expect(selected).toMatchObject({ labelTypeId: 87, easyPostRateId: 'rate_FedEx_SMART_POST', carrierRateCents: 855, customerPriceCents: 684, grossSpreadCents: -171, fulfillmentProvider: 'shipair' });
+  });
+  it('keeps Ground Advantage as the selected ShipAir product', async () => {
+    const quote = await serviceFor([rate('FedEx', 'SMART_POST', 855)]).getQuote({ ...input, labelTypeId: 78 });
+    expect(quote).toMatchObject({ labelTypeId: 78, serviceName: 'USPS Ground Advantage', customerPriceCents: 684 });
   });
 });

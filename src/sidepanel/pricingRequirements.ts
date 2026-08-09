@@ -28,6 +28,7 @@ export function getPricingRequirements(shipment: ShipmentDraft): PricingRequirem
   ] satisfies PricingRequirement[];
 
   return [
+    { key: 'service.labelType', label: 'Select a label type', section: 'service', valid: /^\d+$/.test(shipment.selectedLabelTypeId) && Number(shipment.selectedLabelTypeId) > 0, message: 'Required to calculate price' },
     ...addressRequirements('sender', shipment.sender),
     ...addressRequirements('recipient', shipment.recipient),
     { key: 'package.weight', label: 'Enter package weight', section: 'package', valid: Number.isFinite(Number(shipment.package.weight)) && Number(shipment.package.weight) >= 2, message: 'Minimum 2 lb' },

@@ -20,7 +20,6 @@ import { safeDatabaseError } from './services/postgresRepositories.js';
 import { normalizeLabelProviderError } from './services/normalizeLabelProviderError.js';
 import { getShippingServiceMapping } from './services/shippingServiceMapping.js';
 import { LabelProviderError } from './services/labelProviderError.js';
-import type { EasyPostLabelProvider } from './providers/easyPostLabelProvider.js';
 
 export async function buildApp(
   config: BackendConfig,
@@ -30,7 +29,6 @@ export async function buildApp(
   orderRepository?: OrderRepository,
   pricingService?: PricingService,
   database?: { query(queryText: string): Promise<unknown> },
-  easyPostLabelProvider?: EasyPostLabelProvider,
 ) {
   const app = Fastify({
     logger: { redact: ['req.headers.authorization', 'req.body.sender', 'req.body.recipient'] },
@@ -416,9 +414,7 @@ export async function buildApp(
             await orderRepository.markLabelCreated(orderId, existingLabel.label);
             return { received: true };
           }
-          const purchased = easyPostLabelProvider && storedQuote.fulfillmentProvider === 'easypost'
-            ? await easyPostLabelProvider.purchaseLabel(storedQuote)
-            : { label: await provider.createLabel(claimed.shipmentSnapshot), pdfUrl: '' };
+          const purchased = { label: await provider.createLabel(claimed.shipmentSnapshot), pdfUrl: '' };
           const providerLabel = purchased.label;
           const label = {
             ...providerLabel,

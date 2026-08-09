@@ -1,7 +1,6 @@
 import { buildApp } from './createApp.js';
 import { assertBackendConfig, loadConfig } from './config/env.js';
 import { EasyPostRateProvider } from './providers/easyPostRateProvider.js';
-import { EasyPostLabelProvider } from './providers/easyPostLabelProvider.js';
 import { ShipAirLabelProvider } from './providers/shipAirShippingProvider.js';
 import { StripeCheckoutPaymentProvider } from './providers/stripeCheckoutPaymentProvider.js';
 import { InMemoryLabelRepository } from './services/labelRepository.js';
@@ -61,6 +60,5 @@ export async function buildConfiguredApp() {
     orderRepository,
     pricingService,
     database?.pool,
-    new EasyPostLabelProvider(config.easyPostApiKey),
   );
 }
