@@ -8,6 +8,7 @@ export interface OrderRepository {
   updateCheckout(id: string, sessionId: string, url: string): Promise<OrderRecord>;
   markPaid(id: string, paymentIntentId: string): Promise<OrderRecord | null>;
   claimLabelProcessing(id: string): Promise<OrderRecord | null>;
+  claimLabelRetryProcessing(id: string): Promise<OrderRecord | null>;
   markLabelCreated(id: string, label: CreatedLabel): Promise<OrderRecord | null>;
   markLabelFailed(id: string, message: string): Promise<OrderRecord | null>;
   updateStatus(id: string, status: OrderStatus): Promise<OrderRecord | null>;
@@ -51,6 +52,11 @@ export class InMemoryOrderRepository implements OrderRepository {
       return null;
     }
     return this.update(id, { status: 'label_processing' });
+  }
+  async claimLabelRetryProcessing(id: string) {
+    const current = this.records.get(id);
+    if (!current || current.status !== 'label_failed') return null;
+    return this.update(id, { status: 'label_processing', errorMessage: '' });
   }
   async markLabelCreated(id: string, label: CreatedLabel) {
     return this.update(id, {

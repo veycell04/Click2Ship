@@ -39,6 +39,7 @@ export type BackendRequestMessage =
   | { type: 'GET_PRICING_QUOTE'; payload: PricingQuoteRequest }
   | { type: 'CREATE_CHECKOUT'; quoteId: string }
   | { type: 'GET_ORDER_STATUS'; orderId: string }
+  | { type: 'RETRY_LABEL'; orderId: string }
   | { type: 'CREATE_LABEL'; payload: CreateLabelRequest }
   | { type: 'GET_LABEL_BY_SELECTION'; selectionId: string }
   | { type: 'DOWNLOAD_LABEL'; labelId: string };
@@ -64,6 +65,7 @@ export const isBackendRequestMessage = (value: unknown): value is BackendRequest
     'GET_PRICING_QUOTE',
     'CREATE_CHECKOUT',
     'GET_ORDER_STATUS',
+    'RETRY_LABEL',
     'CREATE_LABEL',
     'GET_LABEL_BY_SELECTION',
     'DOWNLOAD_LABEL',

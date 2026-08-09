@@ -70,9 +70,10 @@ export function assertBackendConfig(config: BackendConfig): void {
     throw new Error('EASYPOST_API_KEY is missing. Add it to backend/.env.');
   if (
     config.nodeEnv === 'production' &&
-    /(?:localhost|127\.0\.0\.1|0\.0\.0\.0)/i.test(config.publicBaseUrl)
+    (!config.publicBaseUrl.startsWith('https://') ||
+      /(?:localhost|127\.0\.0\.1|0\.0\.0\.0)/i.test(config.publicBaseUrl))
   ) {
-    throw new Error('PUBLIC_APP_URL must be a public HTTPS URL in production and cannot use localhost, 127.0.0.1, or 0.0.0.0.');
+    throw new Error('PUBLIC_APP_URL must be a public HTTPS URL in production.');
   }
   if (config.nodeEnv === 'production' && !config.databaseUrl)
     throw new Error('DATABASE_URL is required in production.');

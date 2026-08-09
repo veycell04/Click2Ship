@@ -24,6 +24,7 @@ const shipment: CompletedShipment = {
   recipientName: 'Mesut Alver',
   destinationCity: 'SALT LAKE',
   destinationState: 'UT',
+  destinationZip: '84116-4771',
   weight: '2',
   length: '12',
   width: '9',
@@ -66,10 +67,13 @@ describe('completed label workflow', () => {
     expect(markup).toContain('Recent Labels');
     expect(markup).toContain('Mesut Alver');
     expect(markup).toContain('USPS Priority Mail');
+    expect(markup).toContain('SALT LAKE, UT 84116-4771');
+    expect(markup).toContain('2 lb · 12 × 9 × 1 in');
     expect(markup).toContain('Carrier: USPS');
     expect(markup).toContain('Service: Priority Mail');
     expect(markup).toContain('Price: $10.76');
     expect(markup.toLowerCase()).not.toContain('shipair');
+    expect(markup).not.toMatch(/undefined|null|>,\s*</i);
   });
 
   it('copies tracking through the clipboard API', async () => {

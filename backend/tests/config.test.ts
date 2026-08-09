@@ -63,10 +63,28 @@ describe('backend environment validation', () => {
       const config = loadConfig({ NODE_ENV: 'production', PUBLIC_APP_URL: publicAppUrl,
         SHIPAIR_API_KEY: 'shipair-key', CLICK2SHIP_EXTENSION_ID: 'extension-id',
         EASYPOST_API_KEY: 'EZTKtest', DATABASE_URL: 'postgresql://configured' });
-      expect(() => assertBackendConfig(config)).toThrow('PUBLIC_APP_URL must be a public HTTPS URL in production');
+      expect(() => assertBackendConfig(config)).toThrow(
+        'PUBLIC_APP_URL must be a public HTTPS URL in production.',
+      );
       log.mockRestore();
     },
   );
+
+  it('rejects a non-HTTPS public URL in production', () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const config = loadConfig({
+      NODE_ENV: 'production',
+      PUBLIC_APP_URL: 'http://click2-ship.vercel.app',
+      SHIPAIR_API_KEY: 'shipair-key',
+      CLICK2SHIP_EXTENSION_ID: 'extension-id',
+      EASYPOST_API_KEY: 'EZTKtest',
+      DATABASE_URL: 'postgresql://configured',
+    });
+    expect(() => assertBackendConfig(config)).toThrow(
+      'PUBLIC_APP_URL must be a public HTTPS URL in production.',
+    );
+    log.mockRestore();
+  });
 
   it('rejects a Stripe publishable key in the backend secret-key setting', () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);

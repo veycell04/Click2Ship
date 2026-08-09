@@ -69,6 +69,8 @@ export function backendRequestUrl(message: BackendRequestMessage): string {
       return apiUrl('/api/payments/checkout');
     case 'GET_ORDER_STATUS':
       return apiUrl(`/api/orders/${encodeURIComponent(message.orderId)}/status`);
+    case 'RETRY_LABEL':
+      return apiUrl(`/api/orders/${encodeURIComponent(message.orderId)}/retry-label`);
     case 'CREATE_LABEL':
       return apiUrl('/api/shipping/labels');
     case 'GET_LABEL_BY_SELECTION':
@@ -107,6 +109,12 @@ export async function handleBackendRequest(
       break;
     case 'GET_ORDER_STATUS':
       result = await backendFetch(`/api/orders/${encodeURIComponent(message.orderId)}/status`);
+      break;
+    case 'RETRY_LABEL':
+      result = await backendFetch(`/api/orders/${encodeURIComponent(message.orderId)}/retry-label`, {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+      });
       break;
     case 'CREATE_LABEL':
       result = await backendFetch('/api/shipping/labels', {

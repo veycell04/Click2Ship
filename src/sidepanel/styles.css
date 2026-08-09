@@ -640,6 +640,22 @@ button {
 .recent-labels article button {
   align-self: center;
 }
+.recent-label-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.recent-label-actions button {
+  width: 100%;
+}
+.support-footer {
+  padding: 4px 16px 18px;
+  text-align: center;
+}
+.support-footer button {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .text-button {
   background: transparent;
   color: #53647a;

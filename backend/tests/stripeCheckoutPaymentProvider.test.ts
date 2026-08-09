@@ -5,8 +5,9 @@ import { StripeCheckoutPaymentProvider } from '../src/providers/stripeCheckoutPa
 describe('StripeCheckoutPaymentProvider', () => {
   it('creates a backend-priced payment Session with complete metadata and idempotency', async () => {
     const create = vi.fn(async () => ({ id: 'cs_test_1', url: 'https://checkout.stripe.com/test' }));
+    const retrieve = vi.fn();
     const stripe = {
-      checkout: { sessions: { create } },
+      checkout: { sessions: { create, retrieve } },
       webhooks: { constructEvent: vi.fn() },
     } as unknown as Stripe;
     const provider = new StripeCheckoutPaymentProvider('sk_test', 'whsec_test', stripe);
@@ -35,8 +36,29 @@ describe('StripeCheckoutPaymentProvider', () => {
           },
         }],
       }),
-      { idempotencyKey: 'click2ship-checkout-quote-1' },
+      { idempotencyKey: 'click2ship-checkout-v2-quote-1-initial' },
     );
     expect(JSON.stringify(create.mock.calls[0])).not.toContain('ShipAir');
+  });
+
+  it('retrieves redirect and lifecycle state for reuse validation', async () => {
+    const retrieve = vi.fn(async () => ({
+      id: 'cs_live_1',
+      url: 'https://checkout.stripe.com/live',
+      success_url: 'https://click2-ship.vercel.app/payment/success?session_id={CHECKOUT_SESSION_ID}',
+      cancel_url: 'https://click2-ship.vercel.app/payment/cancel',
+      status: 'open',
+      payment_status: 'unpaid',
+    }));
+    const stripe = {
+      checkout: { sessions: { create: vi.fn(), retrieve } },
+      webhooks: { constructEvent: vi.fn() },
+    } as unknown as Stripe;
+    const provider = new StripeCheckoutPaymentProvider('sk_live_example', 'whsec_live', stripe);
+    await expect(provider.getCheckoutSession('cs_live_1')).resolves.toMatchObject({
+      id: 'cs_live_1',
+      status: 'open',
+      paymentStatus: 'unpaid',
+    });
   });
 });

@@ -7,6 +7,7 @@ import {
   BackendClientError,
   type BackendConnectionDiagnostic,
   type BackendLabelType,
+  type BackendOrderResult,
   type BackendPriceQuote,
 } from '../services/click2ShipBackendClient';
 import { describeCreateLabelError, type CreateLabelDiagnostic } from '../services/createLabelError';
@@ -24,8 +25,11 @@ import {
   loadCompletedShipment,
   loadRecentLabels,
   loadPaymentOrder,
+  loadPaymentOrders,
   saveCompletedShipment,
+  saveRecentLabel,
   savePaymentOrder,
+  updatePaymentOrderStatus,
   saveSender,
   startAnotherShipment,
   SELECTION_DEBUG_KEY,
@@ -41,6 +45,9 @@ import { copyText, downloadPdf, openPdfForPrint } from './labelActions';
 import { createPricingInputKey, describePricingError, PricingRequestGate } from './pricingState';
 import { PriceCard } from './PriceCard';
 import { LabelTypeSelect } from './LabelTypeSelect';
+import { RecentLabels } from './RecentLabels';
+import { createSupportMailto } from './support';
+import { shipmentDestination, shipmentPackage } from './shipmentDisplay';
 import {
   getPricingRequirements,
   groupMissingPricingRequirements,
@@ -68,6 +75,45 @@ const developmentDiagnosticsEnabled =
   import.meta.env.DEV || import.meta.env.VITE_APP_ENV === 'development';
 const buildTimestamp = __CLICK2SHIP_BUILD_TIMESTAMP__;
 const PRICE_TIMEOUT_MS = 5_000;
+
+const completedShipmentFromOrder = (order: BackendOrderResult): CompletedShipment | null => {
+  if (order.status !== 'label_created' || !order.label || !order.successDetails) return null;
+  const details = order.successDetails;
+  return {
+    orderId: order.id,
+    quoteId: order.quoteId,
+    selectionId: order.selectionId,
+    label: {
+      ...order.label,
+      trackingNumber: details.trackingNumber,
+      labelTypeName: details.serviceName,
+      reference: details.reference ?? '',
+      downloadUrl: details.labelUrl ?? order.label.downloadUrl,
+    },
+    recipientName: details.recipientName,
+    destinationCity: '',
+    destinationState: '',
+    destination: details.destination,
+    weight: details.weightLb === null ? '' : String(details.weightLb),
+    length: details.lengthIn === null ? '' : String(details.lengthIn),
+    width: details.widthIn === null ? '' : String(details.widthIn),
+    height: details.heightIn === null ? '' : String(details.heightIn),
+    price: new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: order.currency || 'USD',
+    }).format(order.amountCents / 100),
+  };
+};
+
+const hasSuccessDisplayDetails = (shipment: CompletedShipment): boolean =>
+  Boolean(
+    shipment.recipientName.trim() &&
+      shipmentDestination(shipment) &&
+      shipment.weight &&
+      shipment.length &&
+      shipment.width &&
+      shipment.height,
+  );
 
 const withPricingTimeout = <T,>(request: Promise<T>): Promise<T> =>
   new Promise<T>((resolve, reject) => {
@@ -213,6 +259,8 @@ export function App() {
   });
   const pricingRequestGateRef = useRef(new PricingRequestGate());
   const [orderId, setOrderId] = useState('');
+  const [orderStatus, setOrderStatus] = useState<BackendOrderResult['status'] | ''>('');
+  const [pollRevision, setPollRevision] = useState(0);
   const [paymentStatus, setPaymentStatus] = useState('');
   const handleQuoteExpired = useCallback(() => {
     setPaymentPrice(null);
@@ -234,6 +282,7 @@ export function App() {
       loadCompletedShipment(),
       loadRecentLabels(),
       loadPaymentOrder(),
+      loadPaymentOrders(),
     ])
       .then(
         ([
@@ -248,17 +297,51 @@ export function App() {
           savedCompletedShipment,
           savedRecentLabels,
           savedPaymentOrder,
+          savedPaymentOrders,
         ]) => {
           selectionIdRef.current = selectionId;
           selectionTextRef.current = selectedText;
           setSelectionDebug(savedDebug);
           setSender(savedSender);
           setRecentLabels(savedRecentLabels);
-          if (savedPaymentOrder?.selectionId === selectionId) {
+          if (savedPaymentOrder) {
             setOrderId(savedPaymentOrder.orderId);
+            if (
+              ['draft', 'checkout_created', 'payment_pending', 'paid', 'label_processing', 'label_created', 'payment_failed', 'label_failed'].includes(
+                savedPaymentOrder.currentStatus,
+              )
+            ) {
+              setOrderStatus(savedPaymentOrder.currentStatus as BackendOrderResult['status']);
+            }
             setPaymentStatus('Waiting for payment…');
           }
-          if (savedCompletedShipment?.selectionId === selectionId) {
+          void Promise.allSettled(
+            savedPaymentOrders.map((storedOrder) =>
+              click2ShipBackendClient.getOrderStatus(storedOrder.orderId),
+            ),
+          ).then(async (results) => {
+            const recovered = results
+              .filter(
+                (result): result is PromiseFulfilledResult<BackendOrderResult> =>
+                  result.status === 'fulfilled',
+              )
+              .map((result) => completedShipmentFromOrder(result.value))
+              .filter((shipment): shipment is CompletedShipment => shipment !== null);
+            if (recovered.length === 0) return;
+            await Promise.all(recovered.map(saveRecentLabel));
+            setRecentLabels((current) =>
+              [...recovered, ...current]
+                .filter(
+                  (entry, index, all) =>
+                    all.findIndex((candidate) => candidate.label.id === entry.label.id) === index,
+                )
+                .slice(0, 10),
+            );
+          });
+          if (
+            savedCompletedShipment?.selectionId === selectionId &&
+            hasSuccessDisplayDetails(savedCompletedShipment)
+          ) {
             setCompletedShipment(savedCompletedShipment);
           } else if (selectionId) {
             void click2ShipBackendClient
@@ -325,6 +408,7 @@ export function App() {
         });
         setCompletedShipment(null);
         setOrderId('');
+        setOrderStatus('');
         setPaymentStatus('');
         dispatchSession({
           type: 'new',
@@ -599,7 +683,12 @@ export function App() {
         paymentPrice?.quoteId ?? '',
       );
       setOrderId(checkout.orderId);
-      await savePaymentOrder(shipmentSession.id, checkout.orderId);
+      await savePaymentOrder(
+        shipmentSession.id,
+        checkout.orderId,
+        paymentPrice?.quoteId ?? '',
+        checkout.status ?? 'payment_pending',
+      );
       setPaymentStatus('Waiting for payment confirmation…');
       if (checkout.checkoutUrl) await chrome.tabs.create({ url: checkout.checkoutUrl });
     } catch (error) {
@@ -623,6 +712,8 @@ export function App() {
       attempts += 1;
       try {
         const order = await click2ShipBackendClient.getOrderStatus(orderId);
+        setOrderStatus(order.status);
+        await updatePaymentOrderStatus(orderId, order.status);
         if (order.status === 'checkout_created' || order.status === 'payment_pending') {
           setPaymentStatus('Waiting for payment…');
         } else if (order.status === 'paid' || order.status === 'label_processing') {
@@ -635,18 +726,8 @@ export function App() {
           setLabelError(order.errorMessage || 'Contact support for label recovery or a refund.');
           stopped = true;
         } else if (order.status === 'label_created' && order.label) {
-          const completed: CompletedShipment = {
-            selectionId: shipmentSession.id,
-            label: order.label,
-            recipientName: recipient.fullName,
-            destinationCity: recipient.city,
-            destinationState: recipient.state,
-            weight: parcel.weight,
-            length: parcel.length,
-            width: parcel.width,
-            height: parcel.height,
-            price: paymentPrice?.customerDisplayAmount,
-          };
+          const completed = completedShipmentFromOrder(order);
+          if (!completed) return;
           await saveCompletedShipment(completed);
           setCompletedShipment(completed);
           setRecentLabels((current) =>
@@ -673,7 +754,7 @@ export function App() {
       stopped = true;
       window.clearInterval(timer);
     };
-  }, [orderId, completedShipment, shipmentSession.id, recipient, parcel, paymentPrice]);
+  }, [orderId, completedShipment, shipmentSession.id, recipient, parcel, paymentPrice, pollRevision]);
 
   const downloadLabel = async (shipment = completedShipment) => {
     if (!shipment) return;
@@ -691,6 +772,42 @@ export function App() {
         ? 'Print dialog opened.'
         : 'Automatic printing was blocked. Use the browser print dialog in the opened PDF.',
     );
+  };
+
+  const printSavedLabel = async (shipment: CompletedShipment) => {
+    const automatic = await openPdfForPrint(() =>
+      click2ShipBackendClient.downloadLabel(shipment.label.id),
+    );
+    setPrintStatus(
+      automatic
+        ? 'Print dialog opened.'
+        : 'Automatic printing was blocked. Use the browser print dialog in the opened PDF.',
+    );
+  };
+
+  const openSupport = async (shipment?: CompletedShipment) => {
+    const supportUrl = createSupportMailto({
+      orderId: shipment?.orderId || orderId,
+      trackingNumber: shipment?.label.trackingNumber || completedShipment?.label.trackingNumber,
+      serviceName: shipment?.label.labelTypeName || completedShipment?.label.labelTypeName,
+    });
+    await chrome.tabs.create({ url: supportUrl });
+  };
+
+  const retryPaidLabel = async () => {
+    if (!orderId) return;
+    setLabelError('');
+    setPaymentStatus('Payment received. Creating your label…');
+    try {
+      const result = await click2ShipBackendClient.retryLabel(orderId);
+      await updatePaymentOrderStatus(orderId, result.status);
+      setOrderStatus(result.status);
+      setPaymentStatus('Payment received. Creating your label…');
+      setPollRevision((current) => current + 1);
+    } catch {
+      setPaymentStatus("Payment received, but we couldn't create your label.");
+      setLabelError('Do not pay again. Contact support for help.');
+    }
   };
 
   const copyTracking = async (shipment = completedShipment) => {
@@ -714,6 +831,7 @@ export function App() {
     setFinalConfirmed(false);
     setCompletedShipment(null);
     setOrderId('');
+    setOrderStatus('');
     setPaymentStatus('');
     setLabelError('');
     setCopyStatus('');
@@ -752,6 +870,8 @@ export function App() {
           <div className="success-icon">✓</div>
           <p className="eyebrow">Label created successfully</p>
           <h1>Label created successfully</h1>
+          <p><strong>Your label is saved.</strong></p>
+          <p>If this window closes, reopen ShipDime and go to Recent Labels.</p>
           <div className="tracking">
             <span>Tracking number</span>
             <strong>{completedShipment.label.trackingNumber}</strong>
@@ -763,16 +883,11 @@ export function App() {
             </div>
             <div>
               <dt>Destination</dt>
-              <dd>
-                {completedShipment.destinationCity}, {completedShipment.destinationState}
-              </dd>
+              <dd>{shipmentDestination(completedShipment) || 'Not available'}</dd>
             </div>
             <div>
               <dt>Package</dt>
-              <dd>
-                {completedShipment.weight} lb · {completedShipment.length} ×{' '}
-                {completedShipment.width} × {completedShipment.height} in
-              </dd>
+              <dd>{shipmentPackage(completedShipment) || 'Not available'}</dd>
             </div>
             <div>
               <dt>Label type</dt>
@@ -825,9 +940,20 @@ export function App() {
               <button className="secondary compact" onClick={() => void copyTracking(entry)}>
                 Copy Tracking
               </button>
+              <button className="secondary compact" onClick={() => void printSavedLabel(entry)}>
+                Print Label
+              </button>
+              <button className="text-button compact" onClick={() => void openSupport(entry)}>
+                Report a problem
+              </button>
             </article>
           ))}
         </section>
+        <footer className="support-footer">
+          <button className="text-button" onClick={() => void openSupport(completedShipment)}>
+            Problem with a label?
+          </button>
+        </footer>
       </main>
     );
   }
@@ -1082,7 +1208,19 @@ export function App() {
           </label>
         </section>
 
-        {labelError && (
+        {orderStatus === 'label_failed' && (
+          <div className="label-error" role="alert">
+            <strong>Payment received, but we couldn't create your label.</strong>
+            <p>Do not pay again.</p>
+            <button type="button" className="secondary compact" onClick={() => void retryPaidLabel()}>
+              Retry Label Creation
+            </button>
+            <button type="button" className="text-button compact" onClick={() => void openSupport()}>
+              Contact Support
+            </button>
+          </div>
+        )}
+        {labelError && orderStatus !== 'label_failed' && (
           <div className="label-error" role="alert">
             <p>{labelError}</p>
             <button
@@ -1117,7 +1255,6 @@ export function App() {
             ? 'Opening secure checkout…'
             : `Pay ${paymentPrice?.customerDisplayAmount ?? '…'} and Create Label`}
         </button>
-        <p className="fine-print">Stripe test mode only. Do not use a real payment card.</p>
         {developmentDiagnosticsEnabled && (
           <button
             className="text-button reset-data"
@@ -1128,6 +1265,18 @@ export function App() {
           </button>
         )}
       </form>
+      <RecentLabels
+        labels={recentLabels}
+        onDownload={(shipment) => void downloadLabel(shipment)}
+        onPrint={(shipment) => void printSavedLabel(shipment)}
+        onCopy={(shipment) => void copyTracking(shipment)}
+        onSupport={(shipment) => void openSupport(shipment)}
+      />
+      <footer className="support-footer">
+        <button className="text-button" onClick={() => void openSupport()}>
+          Need help?
+        </button>
+      </footer>
     </main>
   );
 }

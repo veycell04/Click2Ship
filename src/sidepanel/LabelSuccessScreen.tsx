@@ -1,4 +1,5 @@
 import type { CompletedShipment } from '../services/storage';
+import { shipmentDestination, shipmentPackage } from './shipmentDisplay';
 
 export function LabelSuccessScreen({
   shipment,
@@ -48,15 +49,11 @@ export function LabelSuccessScreen({
           </div>
           <div>
             <dt>Destination</dt>
-            <dd>
-              {shipment.destinationCity}, {shipment.destinationState}
-            </dd>
+            <dd>{shipmentDestination(shipment) || 'Not available'}</dd>
           </div>
           <div>
             <dt>Package</dt>
-            <dd>
-              {shipment.weight} lb · {shipment.length} × {shipment.width} × {shipment.height} in
-            </dd>
+            <dd>{shipmentPackage(shipment) || 'Not available'}</dd>
           </div>
           <div>
             <dt>Label type</dt>

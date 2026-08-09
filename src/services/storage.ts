@@ -14,6 +14,7 @@ export const SOURCE_TAB_ID_KEY = 'sourceTabId';
 export const COMPLETED_SHIPMENT_KEY = 'completedShipment';
 export const RECENT_LABELS_KEY = 'recentLabels';
 export const PAYMENT_ORDER_KEY = 'paymentOrder';
+export const PAYMENT_ORDERS_KEY = 'paymentOrders';
 export type SelectionStatus = 'idle' | 'loading' | 'ready' | 'fallback';
 
 export interface SelectionDebugData {
@@ -26,10 +27,14 @@ export interface SelectionDebugData {
 
 export interface CompletedShipment {
   selectionId: string;
+  orderId?: string;
+  quoteId?: string;
   label: BackendCreatedLabel;
   recipientName: string;
   destinationCity: string;
   destinationState: string;
+  destinationZip?: string;
+  destination?: string;
   weight: string;
   length: string;
   width: string;
@@ -197,6 +202,17 @@ export async function saveCompletedShipment(shipment: CompletedShipment): Promis
   });
 }
 
+export async function saveRecentLabel(shipment: CompletedShipment): Promise<void> {
+  if (!hasChromeStorage()) return;
+  const history = await loadRecentLabels();
+  await chrome.storage.local.set({
+    [RECENT_LABELS_KEY]: [
+      shipment,
+      ...history.filter((entry) => entry.label.id !== shipment.label.id),
+    ].slice(0, 10),
+  });
+}
+
 export async function startAnotherShipment(): Promise<string> {
   const selectionId = crypto.randomUUID();
   if (hasChromeStorage()) {
@@ -214,18 +230,76 @@ export async function startAnotherShipment(): Promise<string> {
   return selectionId;
 }
 
-export async function savePaymentOrder(selectionId: string, orderId: string): Promise<void> {
-  if (hasChromeStorage())
-    await chrome.storage.local.set({ [PAYMENT_ORDER_KEY]: { selectionId, orderId } });
+export interface StoredPaymentOrder {
+  orderId: string;
+  quoteId: string;
+  selectionId: string;
+  currentStatus: string;
 }
 
-export async function loadPaymentOrder(): Promise<{ selectionId: string; orderId: string } | null> {
+const isStoredPaymentOrder = (value: unknown): value is StoredPaymentOrder => {
+  if (!value || typeof value !== 'object') return false;
+  const order = value as Record<string, unknown>;
+  return (
+    typeof order.orderId === 'string' &&
+    typeof order.quoteId === 'string' &&
+    typeof order.selectionId === 'string' &&
+    typeof order.currentStatus === 'string'
+  );
+};
+
+export async function loadPaymentOrders(): Promise<StoredPaymentOrder[]> {
+  if (!hasChromeStorage()) return [];
+  const result = await chrome.storage.local.get(PAYMENT_ORDERS_KEY);
+  return Array.isArray(result[PAYMENT_ORDERS_KEY])
+    ? result[PAYMENT_ORDERS_KEY].filter(isStoredPaymentOrder).slice(0, 10)
+    : [];
+}
+
+export async function savePaymentOrder(
+  selectionId: string,
+  orderId: string,
+  quoteId = '',
+  currentStatus = 'payment_pending',
+): Promise<void> {
+  if (!hasChromeStorage()) return;
+  const order = { selectionId, orderId, quoteId, currentStatus };
+  const history = await loadPaymentOrders();
+  await chrome.storage.local.set({
+    [PAYMENT_ORDER_KEY]: order,
+    [PAYMENT_ORDERS_KEY]: [order, ...history.filter((entry) => entry.orderId !== orderId)].slice(0, 10),
+  });
+}
+
+export async function updatePaymentOrderStatus(orderId: string, currentStatus: string): Promise<void> {
+  if (!hasChromeStorage()) return;
+  const current = await loadPaymentOrder();
+  const history = await loadPaymentOrders();
+  const update = (entry: StoredPaymentOrder) =>
+    entry.orderId === orderId ? { ...entry, currentStatus } : entry;
+  await chrome.storage.local.set({
+    [PAYMENT_ORDER_KEY]: current?.orderId === orderId ? update(current) : current,
+    [PAYMENT_ORDERS_KEY]: history.map(update),
+  });
+}
+
+export async function loadPaymentOrder(): Promise<StoredPaymentOrder | null> {
   if (!hasChromeStorage()) return null;
   const result = await chrome.storage.local.get(PAYMENT_ORDER_KEY);
-  const value = result[PAYMENT_ORDER_KEY] as Record<string, unknown> | null;
-  return value && typeof value.selectionId === 'string' && typeof value.orderId === 'string'
-    ? { selectionId: value.selectionId, orderId: value.orderId }
-    : null;
+  const value = result[PAYMENT_ORDER_KEY];
+  if (isStoredPaymentOrder(value)) return value;
+  if (value && typeof value === 'object') {
+    const legacy = value as Record<string, unknown>;
+    if (typeof legacy.selectionId === 'string' && typeof legacy.orderId === 'string') {
+      return {
+        selectionId: legacy.selectionId,
+        orderId: legacy.orderId,
+        quoteId: '',
+        currentStatus: 'payment_pending',
+      };
+    }
+  }
+  return null;
 }
 
 export async function loadSelection(): Promise<string> {

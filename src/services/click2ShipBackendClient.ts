@@ -57,6 +57,19 @@ export type BackendOrderStatus =
   | 'label_created'
   | 'payment_failed'
   | 'label_failed';
+export interface LabelSuccessDetails {
+  orderId: string;
+  recipientName: string;
+  destination: string;
+  weightLb: number | null;
+  lengthIn: number | null;
+  widthIn: number | null;
+  heightIn: number | null;
+  serviceName: string;
+  trackingNumber: string;
+  reference: string | null;
+  labelUrl?: string;
+}
 export interface BackendOrderResult {
   id: string;
   status: BackendOrderStatus;
@@ -67,6 +80,11 @@ export interface BackendOrderResult {
   downloadUrl: string;
   errorMessage: string;
   label: BackendCreatedLabel | null;
+  quoteId: string;
+  selectionId: string;
+  serviceName: string;
+  createdAt: string;
+  successDetails: LabelSuccessDetails | null;
 }
 export class BackendClientError extends Error {
   constructor(
@@ -346,12 +364,31 @@ export class Click2ShipBackendClient {
   }
 
   async getOrderStatus(orderId: string): Promise<BackendOrderResult> {
-    const result = await this.request<{ success?: boolean; order?: BackendOrderResult }>(
+    const result = await this.request<{
+      success?: boolean;
+      order?: Omit<BackendOrderResult, 'successDetails'>;
+      label?: LabelSuccessDetails;
+    }>(
       { type: 'GET_ORDER_STATUS', orderId },
       `/api/orders/${encodeURIComponent(orderId)}/status`,
     );
     if (!result.data?.success || !result.data.order) throw new Error('Invalid order response.');
-    return result.data.order;
+    return { ...result.data.order, successDetails: result.data.label ?? null };
+  }
+
+  async retryLabel(orderId: string): Promise<{ orderId: string; status: BackendOrderStatus }> {
+    const result = await this.request<{
+      success?: boolean;
+      orderId?: string;
+      status?: BackendOrderStatus;
+    }>(
+      { type: 'RETRY_LABEL', orderId },
+      `/api/orders/${encodeURIComponent(orderId)}/retry-label`,
+    );
+    if (!result.data?.success || !result.data.orderId || !result.data.status) {
+      throw new Error("We couldn't restart label creation. Contact support for help.");
+    }
+    return { orderId: result.data.orderId, status: result.data.status };
   }
 
   private createShipmentPayload(

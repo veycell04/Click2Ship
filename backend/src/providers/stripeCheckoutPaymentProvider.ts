@@ -21,6 +21,7 @@ export class StripeCheckoutPaymentProvider implements PaymentProvider {
     currency: string;
     successUrl: string;
     cancelUrl: string;
+    replacementForSessionId?: string;
   }) {
     const metadata = { orderId: input.orderId, quoteId: input.quoteId, selectionId: input.selectionId };
     const session = await this.stripe.checkout.sessions.create({
@@ -40,9 +41,27 @@ export class StripeCheckoutPaymentProvider implements PaymentProvider {
           },
         },
       ],
-    }, { idempotencyKey: `click2ship-checkout-${input.quoteId}` });
+    }, {
+      idempotencyKey: `click2ship-checkout-v2-${input.quoteId}-${input.replacementForSessionId || 'initial'}`,
+    });
     if (!session.url) throw new Error('Stripe did not return a Checkout URL.');
     return { id: session.id, url: session.url };
+  }
+
+  async getCheckoutSession(sessionId: string) {
+    try {
+      const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+      return {
+        id: session.id,
+        url: session.url || '',
+        successUrl: session.success_url || '',
+        cancelUrl: session.cancel_url || '',
+        status: session.status || '',
+        paymentStatus: session.payment_status || '',
+      };
+    } catch {
+      return null;
+    }
   }
 
   verifyWebhook(rawBody: Buffer, signature: string): PaidCheckoutEvent {

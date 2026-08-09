@@ -34,6 +34,13 @@ export interface CheckoutSessionResult {
   url: string;
 }
 
+export interface CheckoutSessionState extends CheckoutSessionResult {
+  successUrl: string;
+  cancelUrl: string;
+  status: string;
+  paymentStatus: string;
+}
+
 export interface PaidCheckoutEvent {
   type: string;
   sessionId: string;
@@ -53,6 +60,8 @@ export interface PaymentProvider {
     currency: string;
     successUrl: string;
     cancelUrl: string;
+    replacementForSessionId?: string;
   }): Promise<CheckoutSessionResult>;
+  getCheckoutSession(sessionId: string): Promise<CheckoutSessionState | null>;
   verifyWebhook(rawBody: Buffer, signature: string): PaidCheckoutEvent;
 }

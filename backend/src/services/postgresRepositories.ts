@@ -170,20 +170,32 @@ export class PostgresPricingQuoteRepository implements PricingQuoteRepository {
   }
 
   async findById(quoteId: string): Promise<StoredPricingQuote | null> {
-    const result = await this.database.pool.query<{ document: StoredPricingQuote }>(
-      'SELECT document FROM quotes WHERE id = $1::uuid',
+    const result = await this.database.pool.query<{
+      document: StoredPricingQuote;
+      shipment_snapshot: StoredPricingQuote['shipmentSnapshot'];
+    }>(
+      'SELECT document, shipment_snapshot FROM quotes WHERE id = $1::uuid',
       [quoteId],
     );
-    return result.rows[0]?.document ?? null;
+    const row = result.rows[0];
+    if (!row) return null;
+    return {
+      ...row.document,
+      shipmentSnapshot: row.document.shipmentSnapshot ?? row.shipment_snapshot,
+    };
   }
 }
 
 const orderFrom = async (client: PoolClient, id: string): Promise<OrderRecord | null> => {
-  const result = await client.query<{ document: OrderRecord }>(
-    'SELECT document FROM orders WHERE id = $1::uuid FOR UPDATE',
+  const result = await client.query<{
+    document: OrderRecord;
+    shipment_snapshot: OrderRecord['shipmentSnapshot'];
+  }>(
+    'SELECT document, shipment_snapshot FROM orders WHERE id = $1::uuid FOR UPDATE',
     [id],
   );
-  return result.rows[0]?.document ?? null;
+  const row = result.rows[0];
+  return row ? { ...row.document, shipmentSnapshot: row.document.shipmentSnapshot ?? row.shipment_snapshot } : null;
 };
 
 export class PostgresOrderRepository implements OrderRepository {
@@ -216,19 +228,27 @@ export class PostgresOrderRepository implements OrderRepository {
   }
 
   async findById(id: string) {
-    const result = await this.database.pool.query<{ document: OrderRecord }>(
-      'SELECT document FROM orders WHERE id = $1::uuid',
+    const result = await this.database.pool.query<{
+      document: OrderRecord;
+      shipment_snapshot: OrderRecord['shipmentSnapshot'];
+    }>(
+      'SELECT document, shipment_snapshot FROM orders WHERE id = $1::uuid',
       [id],
     );
-    return result.rows[0]?.document ?? null;
+    const row = result.rows[0];
+    return row ? { ...row.document, shipmentSnapshot: row.document.shipmentSnapshot ?? row.shipment_snapshot } : null;
   }
 
   async findBySelectionId(selectionId: string) {
-    const result = await this.database.pool.query<{ document: OrderRecord }>(
-      'SELECT document FROM orders WHERE selection_id = $1::uuid',
+    const result = await this.database.pool.query<{
+      document: OrderRecord;
+      shipment_snapshot: OrderRecord['shipmentSnapshot'];
+    }>(
+      'SELECT document, shipment_snapshot FROM orders WHERE selection_id = $1::uuid',
       [selectionId],
     );
-    return result.rows[0]?.document ?? null;
+    const row = result.rows[0];
+    return row ? { ...row.document, shipmentSnapshot: row.document.shipmentSnapshot ?? row.shipment_snapshot } : null;
   }
 
   async create(order: OrderRecord) {
@@ -298,6 +318,20 @@ export class PostgresOrderRepository implements OrderRepository {
     }
   }
 
+  async claimLabelRetryProcessing(id: string) {
+    const result = await this.database.pool.query<{ document: OrderRecord }>(
+      `UPDATE orders
+       SET status = 'label_processing', error_message = NULL,
+           document = document || jsonb_build_object(
+             'status', 'label_processing', 'errorMessage', '', 'updatedAt', $2::text
+           ), updated_at = $2
+       WHERE id = $1::uuid AND status = 'label_failed'
+       RETURNING document`,
+      [id, new Date().toISOString()],
+    );
+    return result.rows[0]?.document ?? null;
+  }
+
   markLabelCreated(id: string, label: CreatedLabel) {
     return this.update(id, {
       status: 'label_created',
@@ -348,6 +382,21 @@ export class PostgresLabelRepository implements LabelRepository {
       [crypto.randomUUID(), selectionId, provider, JSON.stringify(record), record.createdAt],
     );
     return result.rowCount === 1 ? null : this.findBySelectionId(selectionId);
+  }
+
+  async claimRetryProcessing(selectionId: string) {
+    const next: LabelRecord = {
+      selectionId,
+      status: 'processing',
+      createdAt: new Date().toISOString(),
+      label: null,
+    };
+    const result = await this.database.pool.query(
+      `UPDATE labels SET status = 'processing', document = $2::jsonb
+       WHERE selection_id = $1::uuid AND status IN ('failed', 'unknown', 'processing')`,
+      [selectionId, JSON.stringify(next)],
+    );
+    return result.rowCount === 1;
   }
 
   async markCompleted(selectionId: string, label: CreatedLabel, orderId?: string, providerDownloadUrl?: string) {

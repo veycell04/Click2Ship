@@ -8,7 +8,7 @@ import {
 } from '../src/services/pricingService.js';
 import type { RateProvider } from '../src/services/rateProvider.js';
 import type { CreateLabelInput, CreatedLabel, ShippingProvider } from '../src/types/shipping.js';
-import type { PaidCheckoutEvent, PaymentProvider } from '../src/types/payments.js';
+import type { CheckoutSessionState, PaidCheckoutEvent, PaymentProvider } from '../src/types/payments.js';
 
 const address = {
   fullName: 'Test User',
@@ -75,12 +75,24 @@ class FakePayment implements PaymentProvider {
     paymentIntentId: 'pi_test_1',
     metadata: {},
   };
+  session: CheckoutSessionState | null = null;
   async createCheckoutSession(input: Parameters<PaymentProvider['createCheckoutSession']>[0]) {
     this.createCount += 1;
     this.lastAmountCents = input.amountCents;
     this.lastCheckoutInput = input;
     this.event.metadata = { orderId: input.orderId, quoteId: input.quoteId, selectionId: shipment.selectionId };
+    this.session = {
+      id: 'cs_test_1',
+      url: 'https://checkout.stripe.com/test',
+      successUrl: input.successUrl,
+      cancelUrl: input.cancelUrl,
+      status: 'open',
+      paymentStatus: 'unpaid',
+    };
     return { id: 'cs_test_1', url: 'https://checkout.stripe.com/test' };
+  }
+  async getCheckoutSession(sessionId: string) {
+    return this.session?.id === sessionId ? this.session : null;
   }
   verifyWebhook(_body: Buffer, signature: string) {
     if (signature !== 'valid') throw new Error('invalid signature');
@@ -102,14 +114,21 @@ const config = {
   discountPercent: 20,
   databaseUrl: '',
 };
+const productionRedirectConfig = {
+  nodeEnv: 'production',
+  publicBaseUrl: 'https://click2-ship.vercel.app',
+  checkoutSuccessUrl:
+    'https://click2-ship.vercel.app/payment/success?session_id={CHECKOUT_SESSION_ID}',
+  checkoutCancelUrl: 'https://click2-ship.vercel.app/payment/cancel',
+};
 
-const setup = async () => {
+const setup = async (configOverride: Partial<typeof config> = {}) => {
   const shipping = new FakeShipping();
   const payment = new FakePayment();
   const orders = new InMemoryOrderRepository();
   const quoteRepository = new InMemoryPricingQuoteRepository();
   const app = await buildApp(
-    config,
+    { ...config, ...configOverride },
     shipping,
     new InMemoryLabelRepository(),
     payment,
@@ -280,7 +299,7 @@ describe('payment checkout and fulfillment', () => {
   });
 
   it('reuses one Checkout Session for duplicate clicks', async () => {
-    const { app, payment } = await setup();
+    const { app, payment } = await setup(productionRedirectConfig);
     const quote = await createQuote(app);
     const payload = { quoteId: quote.quoteId };
     const first = await app.inject({ method: 'POST', url: '/api/payments/checkout', payload });
@@ -364,8 +383,22 @@ describe('payment checkout and fulfillment', () => {
 
   it('does not fulfill from payment success or cancel redirects', async () => {
     const { app, shipping } = await setup();
-    expect((await app.inject({ method: 'GET', url: '/payment/success' })).statusCode).toBe(200);
-    expect((await app.inject({ method: 'GET', url: '/payment/cancel' })).statusCode).toBe(200);
+    const success = await app.inject({ method: 'GET', url: '/payment/success' });
+    const cancel = await app.inject({ method: 'GET', url: '/payment/cancel' });
+    expect(success.statusCode).toBe(200);
+    expect(success.body).toContain('ShipDime');
+    expect(success.body).toContain('Payment successful');
+    expect(success.body).toContain('Your payment was received.');
+    expect(success.body).toContain('We\'re creating your shipping label.');
+    expect(success.body).toContain('You can return to the ShipDime extension.');
+    expect(cancel.statusCode).toBe(200);
+    expect(cancel.body).toContain('ShipDime');
+    expect(cancel.body).toContain('Payment canceled');
+    expect(cancel.body).toContain('No payment was completed.');
+    expect(cancel.body).toContain('You can return to the ShipDime extension and try again.');
+    for (const response of [success.body, cancel.body]) {
+      expect(response).not.toMatch(/Stripe|EasyPost|ShipAir|internal ID|backend diagnostics/i);
+    }
     expect(shipping.createCount).toBe(0);
     await app.close();
   });
@@ -396,6 +429,53 @@ describe('payment checkout and fulfillment', () => {
     expect(shipping.lastInput?.labelTypeId).toBe(87);
     const status = await app.inject({ method: 'GET', url: `/api/orders/${orderId}/status` });
     expect(status.json().order).toMatchObject({ status: 'label_created', trackingNumber: '9400' });
+    expect(status.json().label).toMatchObject({
+      recipientName: 'Test User',
+      destination: 'Chicago, IL 60601',
+      weightLb: 2,
+      lengthIn: 12,
+      widthIn: 9,
+      heightIn: 1,
+      serviceName: 'Priority Mail',
+      trackingNumber: '9400',
+    });
+    await app.close();
+  });
+
+  it('replaces an unpaid Checkout Session that has stale localhost redirects', async () => {
+    const { app, payment } = await setup(productionRedirectConfig);
+    const quote = await createQuote(app);
+    const first = await app.inject({
+      method: 'POST',
+      url: '/api/payments/checkout',
+      payload: { quoteId: quote.quoteId },
+    });
+    expect(first.statusCode).toBe(200);
+    expect(payment.createCount).toBe(1);
+    if (!payment.session) throw new Error('Expected Checkout Session.');
+    payment.session.successUrl = 'http://127.0.0.1:3001/payment/success';
+    payment.session.cancelUrl = 'http://localhost:3001/payment/cancel';
+
+    const replacement = await app.inject({
+      method: 'POST',
+      url: '/api/payments/checkout',
+      payload: { quoteId: quote.quoteId },
+    });
+    expect(replacement.statusCode).toBe(200);
+    expect(payment.createCount).toBe(2);
+    expect(payment.lastCheckoutInput?.successUrl).toBe(
+      'https://click2-ship.vercel.app/payment/success?session_id={CHECKOUT_SESSION_ID}',
+    );
+    await app.close();
+  });
+
+  it('reuses a valid open unpaid Checkout Session', async () => {
+    const { app, payment } = await setup(productionRedirectConfig);
+    const quote = await createQuote(app);
+    await app.inject({ method: 'POST', url: '/api/payments/checkout', payload: { quoteId: quote.quoteId } });
+    const reused = await app.inject({ method: 'POST', url: '/api/payments/checkout', payload: { quoteId: quote.quoteId } });
+    expect(reused.statusCode).toBe(200);
+    expect(payment.createCount).toBe(1);
     await app.close();
   });
 
@@ -452,6 +532,25 @@ describe('payment checkout and fulfillment', () => {
     });
     expect(repeatedCheckout.json()).toMatchObject({ status: 'label_failed' });
     expect(payment.createCount).toBe(1);
+
+    shipping.fail = false;
+    const retry = await app.inject({
+      method: 'POST',
+      url: `/api/orders/${checkout.json().orderId}/retry-label`,
+    });
+    expect(retry.statusCode).toBe(200);
+    expect(retry.json()).toMatchObject({ status: 'label_created' });
+    expect(payment.createCount).toBe(1);
+    expect(shipping.createCount).toBe(2);
+
+    const duplicateRetry = await app.inject({
+      method: 'POST',
+      url: `/api/orders/${checkout.json().orderId}/retry-label`,
+    });
+    expect(duplicateRetry.statusCode).toBe(200);
+    expect(duplicateRetry.json()).toMatchObject({ status: 'label_created' });
+    expect(payment.createCount).toBe(1);
+    expect(shipping.createCount).toBe(2);
     await app.close();
   });
 });

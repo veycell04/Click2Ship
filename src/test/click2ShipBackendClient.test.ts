@@ -376,6 +376,9 @@ describe('Click2ShipBackendClient messaging', () => {
       messenger(async () => ({ success: true, status: 200, data: { success: true, order } })),
       'http://test',
     );
-    await expect(client.getOrderStatus('order-1')).resolves.toEqual(order);
+    await expect(client.getOrderStatus('order-1')).resolves.toEqual({
+      ...order,
+      successDetails: null,
+    });
   });
 });

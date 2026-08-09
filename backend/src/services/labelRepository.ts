@@ -18,6 +18,7 @@ export interface LabelRepository {
   findBySelectionId(selectionId: string): Promise<LabelRecord | null>;
   findByLabelId(labelId: string): Promise<LabelRecord | null>;
   claimProcessing(selectionId: string, provider?: string): Promise<LabelRecord | null>;
+  claimRetryProcessing(selectionId: string): Promise<boolean>;
   markCompleted(selectionId: string, label: CreatedLabel, orderId?: string, providerDownloadUrl?: string): Promise<void>;
   markFailed(selectionId: string, errorCode: string, unknown?: boolean): Promise<void>;
 }
@@ -41,6 +42,20 @@ export class InMemoryLabelRepository implements LabelRepository {
       label: null,
     });
     return null;
+  }
+  async claimRetryProcessing(selectionId: string) {
+    const existing = this.records.get(selectionId);
+    if (
+      !existing ||
+      (existing.status !== 'failed' && existing.status !== 'unknown' && existing.status !== 'processing')
+    ) return false;
+    this.records.set(selectionId, {
+      selectionId,
+      status: 'processing',
+      createdAt: existing.createdAt,
+      label: null,
+    });
+    return true;
   }
   async markCompleted(selectionId: string, label: CreatedLabel, orderId?: string, providerDownloadUrl?: string) {
     this.records.set(selectionId, {
