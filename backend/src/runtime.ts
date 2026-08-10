@@ -49,7 +49,7 @@ export async function buildConfiguredApp() {
   const pricingService = new LiveEasyPostPricingService(
     new EasyPostRateProvider(config.easyPostApiKey),
     quoteRepository,
-    config.discountPercent,
+    config.shipDimeDiscountPercent,
   );
 
   return buildApp(

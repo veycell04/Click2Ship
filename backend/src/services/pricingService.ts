@@ -47,8 +47,8 @@ export class RetailRateUnavailableError extends Error {}
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 export class LiveEasyPostPricingService implements PricingService {
-  constructor(private readonly rateProvider: RateProvider, private readonly repository: PricingQuoteRepository, private readonly discountPercent = 20) {
-    if (!Number.isFinite(discountPercent) || discountPercent < 0 || discountPercent >= 100) throw new Error('CLICK2SHIP_DISCOUNT_PERCENT must be between 0 and 99.');
+  constructor(private readonly rateProvider: RateProvider, private readonly repository: PricingQuoteRepository, private readonly discountPercent: number) {
+    if (!Number.isFinite(discountPercent) || discountPercent < 0 || discountPercent >= 100) throw new Error('SHIPDIME_DISCOUNT_PERCENT must be between 0 and 99.');
   }
   private option(rate: ReferenceRate): ShippingRateOption {
     const customer = Math.round(rate.rateCents * (100 - this.discountPercent) / 100);
@@ -74,6 +74,12 @@ export class LiveEasyPostPricingService implements PricingService {
     const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
     const cheapestRate = rates[0]!;
     const benchmark = this.option(cheapestRate);
+    console.log('QUOTE_CALCULATION_COMPLETE', {
+      benchmarkRateCents: benchmark.benchmarkPriceCents,
+      discountPercent: benchmark.savingsPercent,
+      customerPriceCents: benchmark.customerPriceCents,
+      savingsCents: benchmark.savingsCents,
+    });
     const quoteId = crypto.randomUUID();
     try {
       await this.repository.save({ ...benchmark, quoteId, serviceName: selectedService.displayName,

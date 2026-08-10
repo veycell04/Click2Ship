@@ -10,7 +10,7 @@ export interface BackendConfig {
   checkoutSuccessUrl: string;
   checkoutCancelUrl: string;
   easyPostApiKey: string;
-  discountPercent: number;
+  shipDimeDiscountPercent: number;
   databaseUrl: string;
 }
 
@@ -39,12 +39,24 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
     checkoutSuccessUrl: redirects.successUrl,
     checkoutCancelUrl: redirects.cancelUrl,
     easyPostApiKey: env.EASYPOST_API_KEY || '',
-    discountPercent: Number(env.CLICK2SHIP_DISCOUNT_PERCENT ?? 20),
+    shipDimeDiscountPercent: Number(
+      env.SHIPDIME_DISCOUNT_PERCENT ?? env.CLICK2SHIP_DISCOUNT_PERCENT ?? 20,
+    ),
     databaseUrl: env.DATABASE_URL || '',
   };
 }
 
 export function assertBackendConfig(config: BackendConfig): void {
+  if (
+    !Number.isFinite(config.shipDimeDiscountPercent) ||
+    config.shipDimeDiscountPercent < 0 ||
+    config.shipDimeDiscountPercent >= 100
+  ) {
+    throw new Error('SHIPDIME_DISCOUNT_PERCENT must be a number from 0 up to, but not including, 100.');
+  }
+  console.log('PRICING_CONFIGURATION', {
+    discountPercent: config.shipDimeDiscountPercent,
+  });
   console.log('Click2Ship backend configuration', {
     shipAirBaseUrlConfigured: Boolean(config.shipAirBaseUrl),
     shipAirApiKeyConfigured: Boolean(config.shipAirApiKey),

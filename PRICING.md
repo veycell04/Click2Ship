@@ -23,7 +23,7 @@ Backend configuration:
 
 ```text
 EASYPOST_API_KEY=EZTK...
-CLICK2SHIP_DISCOUNT_PERCENT=20
+SHIPDIME_DISCOUNT_PERCENT=20
 ```
 
 Use an EasyPost test key during development. The key must never be prefixed with `VITE_` or sent to

@@ -111,7 +111,7 @@ const config = {
   checkoutSuccessUrl: 'http://127.0.0.1:3001/payment/success?session_id={CHECKOUT_SESSION_ID}',
   checkoutCancelUrl: 'http://127.0.0.1:3001/payment/cancel',
   easyPostApiKey: 'EZTKtest',
-  discountPercent: 20,
+  shipDimeDiscountPercent: 20,
   databaseUrl: '',
 };
 const productionRedirectConfig = {
@@ -139,6 +139,7 @@ const setup = async (configOverride: Partial<typeof config> = {}) => {
         { providerShipmentId: 'shp_1', providerRateId: 'rate_2', carrier: 'USPS', providerCarrier: 'USPS', serviceCode: 'GroundAdvantage', serviceName: 'USPS Ground Advantage', rateCents: 800, currency: 'USD', deliveryDays: 5, deliveryDate: null, guaranteed: false },
       ] } satisfies RateProvider,
       quoteRepository,
+      config.shipDimeDiscountPercent,
     ),
   );
   return { app, shipping, payment, orders, quoteRepository };
@@ -258,6 +259,7 @@ describe('payment checkout and fulfillment', () => {
       new LiveEasyPostPricingService(
         { getRates: async () => [] } satisfies RateProvider,
         new InMemoryPricingQuoteRepository(),
+        config.shipDimeDiscountPercent,
       ),
     );
     const response = await app.inject({

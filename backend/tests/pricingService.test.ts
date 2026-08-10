@@ -9,8 +9,15 @@ const rate = (carrier: SupportedCarrier, serviceCode: string, rateCents: number,
   providerCarrier: carrier, serviceCode, serviceName: `${carrier} ${serviceCode}`, rateCents,
   currency: 'USD', deliveryDays, deliveryDate: null, guaranteed: false,
 });
-const serviceFor = (rates: ReferenceRate[], repository = new InMemoryPricingQuoteRepository()) =>
-  new LiveEasyPostPricingService({ getRates: async () => rates } satisfies RateProvider, repository, 20);
+const serviceFor = (
+  rates: ReferenceRate[],
+  repository = new InMemoryPricingQuoteRepository(),
+  discountPercent = 20,
+) => new LiveEasyPostPricingService(
+  { getRates: async () => rates } satisfies RateProvider,
+  repository,
+  discountPercent,
+);
 
 const commonRates = [
   rate('USPS', 'GroundAdvantage', 818, 5),
@@ -23,6 +30,32 @@ const commonRates = [
 ];
 
 describe('service-class benchmark pricing', () => {
+  it.each([
+    [20, 1_000, 800],
+    [30, 1_000, 700],
+    [30, 855, 599],
+  ])('applies a %d percent discount to %d cents', async (discount, benchmark, expected) => {
+    const quote = await serviceFor(
+      [rate('USPS', 'Priority', benchmark)],
+      new InMemoryPricingQuoteRepository(),
+      discount,
+    ).getQuote(input);
+    expect(quote).toMatchObject({
+      customerPriceCents: expected,
+      savingsCents: benchmark - expected,
+      savingsPercent: discount,
+    });
+  });
+
+  it('creates a differently priced quote after the configured discount changes', async () => {
+    const rates = [rate('USPS', 'Priority', 1_000)];
+    const twenty = await serviceFor(rates, new InMemoryPricingQuoteRepository(), 20).getQuote(input);
+    const thirty = await serviceFor(rates, new InMemoryPricingQuoteRepository(), 30).getQuote(input);
+    expect(thirty.quoteId).not.toBe(twenty.quoteId);
+    expect(twenty.customerPriceCents).toBe(800);
+    expect(thirty.customerPriceCents).toBe(700);
+  });
+
   it('uses only economy services for Ground Advantage and prices $8.18 at $6.54', async () => {
     const quote = await serviceFor(commonRates).getQuote({ ...input, labelTypeId: 78 });
     expect(quote).toMatchObject({ labelTypeId: 78, serviceName: 'USPS Ground Advantage', referencePriceCents: 818, customerPriceCents: 654, savingsCents: 164 });

@@ -68,7 +68,7 @@ const config = {
   checkoutSuccessUrl: 'http://127.0.0.1:3001/payment/success',
   checkoutCancelUrl: 'http://127.0.0.1:3001/payment/cancel',
   easyPostApiKey: 'EZTKtest',
-  discountPercent: 20,
+  shipDimeDiscountPercent: 20,
   databaseUrl: '',
 };
 

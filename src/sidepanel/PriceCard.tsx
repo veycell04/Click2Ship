@@ -124,7 +124,7 @@ export function PriceCard({
               %
             </span>
             <div>
-              <strong>{savingsPercent}% less</strong>
+              <strong>{savingsPercent}% savings</strong>
               <span>We pass the savings to you.</span>
             </div>
           </div>

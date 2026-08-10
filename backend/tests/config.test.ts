@@ -2,6 +2,21 @@ import { describe, expect, it, vi } from 'vitest';
 import { assertBackendConfig, loadConfig, paymentRedirectUrls } from '../src/config/env.js';
 
 describe('backend environment validation', () => {
+  it('prefers SHIPDIME_DISCOUNT_PERCENT and temporarily supports the legacy name', () => {
+    expect(loadConfig({ SHIPDIME_DISCOUNT_PERCENT: '30', CLICK2SHIP_DISCOUNT_PERCENT: '20' })
+      .shipDimeDiscountPercent).toBe(30);
+    expect(loadConfig({ CLICK2SHIP_DISCOUNT_PERCENT: '25' }).shipDimeDiscountPercent).toBe(25);
+    expect(loadConfig({}).shipDimeDiscountPercent).toBe(20);
+  });
+
+  it.each(['not-a-number', '-1', '100'])(
+    'rejects invalid SHIPDIME_DISCOUNT_PERCENT %s',
+    (value) => {
+      const config = loadConfig({ SHIPDIME_DISCOUNT_PERCENT: value });
+      expect(() => assertBackendConfig(config)).toThrow('SHIPDIME_DISCOUNT_PERCENT');
+    },
+  );
+
   it('fails startup clearly when the ShipAir API key is missing', () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     const config = loadConfig({

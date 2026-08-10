@@ -29,7 +29,7 @@ describe('PriceCard', () => {
     expect(markup).toContain('$10.76');
     expect(markup).toContain('You save');
     expect(markup).toContain('$2.69');
-    expect(markup).toContain('20% less');
+    expect(markup).toContain('20% savings');
     expect(markup).toContain('Estimated delivery: 2 days');
     expect(markup.match(/Calculated securely by ShipDime/g)).toHaveLength(1);
     expect(markup).not.toMatch(/EasyPost|ShipAir/i);
@@ -43,6 +43,12 @@ describe('PriceCard', () => {
     expect(error).toContain('Unable to calculate shipping price.');
     expect(error).toContain('Retry');
     expect(error).not.toContain('$13.45');
+  });
+
+  it('renders the savings percentage supplied by the backend quote', () => {
+    const markup = renderToStaticMarkup(<PriceCard {...quoteProps} savingsPercent={30} />);
+    expect(markup).toContain('30% savings');
+    expect(markup).not.toContain('20% savings');
   });
 
   it('derives the remaining validity from expiresAt', () => {
