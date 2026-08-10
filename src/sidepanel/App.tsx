@@ -1064,9 +1064,8 @@ export function App() {
         />
         <div>
           <strong>ShipDime</strong>
-          <span>Test workflow</span>
+          <span>Shipping made simple</span>
         </div>
-        <span className="demo-pill">DEMO</span>
         <button className="text-button" onClick={() => setCurrentView('recent')}>
           Recent Labels
         </button>
@@ -1075,7 +1074,7 @@ export function App() {
       <section className="intro">
         <p className="eyebrow">New shipment</p>
         <h1>Create a shipping label</h1>
-        <p>Review the selected address, add package details, and generate a test label.</p>
+        <p>Review the selected address, add package details, and create your shipping label.</p>
         {shipmentSession.status === 'idle' && !shipmentSession.rawSelection && (
           <div className="warning-banner" role="status">
             Select an address on a webpage and right-click Create shipping label with ShipDime

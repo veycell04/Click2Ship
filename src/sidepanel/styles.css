@@ -54,15 +54,8 @@ select {
   color: #718097;
   margin-top: 3px;
 }
-.demo-pill {
+.brand > .text-button {
   margin-left: auto;
-  font-size: 10px;
-  font-weight: 800;
-  color: #1746a2;
-  background: #e9f1ff;
-  border: 1px solid #cbdcff;
-  border-radius: 999px;
-  padding: 4px 7px;
 }
 .intro {
   padding: 24px 18px 12px;
