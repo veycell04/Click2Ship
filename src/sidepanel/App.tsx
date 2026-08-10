@@ -26,6 +26,8 @@ import {
   loadRecentLabels,
   loadPaymentOrder,
   loadPaymentOrders,
+  loadPendingNewShipment,
+  consumePendingNewShipment,
   saveCompletedShipment,
   saveRecentLabel,
   savePaymentOrder,
@@ -37,9 +39,12 @@ import {
   SELECTION_KEY,
   SELECTED_AT_KEY,
   SELECTION_STATUS_KEY,
+  PENDING_NEW_SHIPMENT_KEY,
+  isPendingNewShipment,
   type CompletedShipment,
   type SelectionDebugData,
 } from '../services/storage';
+import { resolveInitialSidePanelRoute } from './shipmentRouting';
 import { emptyShipmentSession, shipmentSessionReducer } from './shipmentSession';
 import { copyText, downloadPdf, openPdfForPrint } from './labelActions';
 import { createPricingInputKey, describePricingError, PricingRequestGate } from './pricingState';
@@ -262,6 +267,7 @@ export function App() {
   const [orderStatus, setOrderStatus] = useState<BackendOrderResult['status'] | ''>('');
   const [pollRevision, setPollRevision] = useState(0);
   const [paymentStatus, setPaymentStatus] = useState('');
+  const [currentView, setCurrentView] = useState<'shipment' | 'recent'>('shipment');
   const handleQuoteExpired = useCallback(() => {
     setPaymentPrice(null);
     setQuotedInputKey('');
@@ -283,6 +289,7 @@ export function App() {
       loadRecentLabels(),
       loadPaymentOrder(),
       loadPaymentOrders(),
+      loadPendingNewShipment(),
     ])
       .then(
         ([
@@ -298,13 +305,24 @@ export function App() {
           savedRecentLabels,
           savedPaymentOrder,
           savedPaymentOrders,
+          pendingNewShipment,
         ]) => {
-          selectionIdRef.current = selectionId;
-          selectionTextRef.current = selectedText;
+          const route = resolveInitialSidePanelRoute({
+            pendingNewShipment,
+            selectionId,
+            paymentOrder: savedPaymentOrder,
+            completedShipment: savedCompletedShipment,
+          });
+          const activeSelectionId = route.selectionId;
+          const activeText =
+            route.view === 'new-shipment' ? route.intent.selectedText : selectedText;
+          selectionIdRef.current = activeSelectionId;
+          selectionTextRef.current = activeText;
           setSelectionDebug(savedDebug);
           setSender(savedSender);
           setRecentLabels(savedRecentLabels);
-          if (savedPaymentOrder) {
+          if (route.view === 'recovery') {
+            const savedPaymentOrder = route.order;
             setOrderId(savedPaymentOrder.orderId);
             if (
               ['draft', 'checkout_created', 'payment_pending', 'paid', 'label_processing', 'label_created', 'payment_failed', 'label_failed'].includes(
@@ -338,18 +356,15 @@ export function App() {
                 .slice(0, 10),
             );
           });
-          if (
-            savedCompletedShipment?.selectionId === selectionId &&
-            hasSuccessDisplayDetails(savedCompletedShipment)
-          ) {
-            setCompletedShipment(savedCompletedShipment);
-          } else if (selectionId) {
+          if (route.view === 'completed' && hasSuccessDisplayDetails(route.shipment)) {
+            setCompletedShipment(route.shipment);
+          } else if (route.view !== 'new-shipment' && activeSelectionId) {
             void click2ShipBackendClient
-              .getLabelBySelection(selectionId)
+              .getLabelBySelection(activeSelectionId)
               .then(async (label) => {
-                if (!label || selectionIdRef.current !== selectionId) return;
+                if (!label || selectionIdRef.current !== activeSelectionId) return;
                 const recovered: CompletedShipment = {
-                  selectionId,
+                  selectionId: activeSelectionId,
                   label,
                   recipientName: extractionResult?.fullName ?? '',
                   destinationCity: extractionResult?.city ?? '',
@@ -370,23 +385,43 @@ export function App() {
               })
               .catch((error: unknown) => console.error('Failed to restore completed label', error));
           }
-          if (selectionId) {
+          if (activeSelectionId) {
             dispatchSession({
               type: 'new',
-              id: selectionId,
-              rawSelection: selectedText,
-              createdAt: selectedAt || Date.now(),
+              id: activeSelectionId,
+              rawSelection: activeText,
+              createdAt:
+                route.view === 'new-shipment' ? route.intent.createdAt : selectedAt || Date.now(),
             });
           }
-          if (extractionResult && extractionSessionId === selectionId) {
+          if (
+            route.view !== 'new-shipment' &&
+            extractionResult &&
+            extractionSessionId === activeSelectionId
+          ) {
             dispatchSession({
               type: 'ready',
-              id: selectionId,
-              rawSelection: selectedText,
+              id: activeSelectionId,
+              rawSelection: activeText,
               result: extractionResult,
             });
-          } else if (selectionId && savedStatus === 'fallback') {
-            dispatchSession({ type: 'error', id: selectionId, rawSelection: selectedText });
+          } else if (
+            route.view !== 'new-shipment' &&
+            activeSelectionId &&
+            savedStatus === 'fallback'
+          ) {
+            dispatchSession({ type: 'error', id: activeSelectionId, rawSelection: activeText });
+          }
+          if (route.view === 'new-shipment') {
+            setCurrentView('shipment');
+            setCompletedShipment(null);
+            setOrderId('');
+            setOrderStatus('');
+            setPaymentStatus('');
+            setPaymentPrice(null);
+            setQuotedInputKey('');
+            pricingRequestGateRef.current.invalidate();
+            void consumePendingNewShipment(route.selectionId);
           }
         },
       )
@@ -395,6 +430,31 @@ export function App() {
     if (typeof chrome === 'undefined' || !chrome.storage?.onChanged) return;
     const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
       if (area !== 'local') return;
+      const pendingIntent = changes[PENDING_NEW_SHIPMENT_KEY]?.newValue;
+      if (isPendingNewShipment(pendingIntent)) {
+        selectionIdRef.current = pendingIntent.selectionId;
+        selectionTextRef.current = pendingIntent.selectedText;
+        setCurrentView('shipment');
+        setCompletedShipment(null);
+        setOrderId('');
+        setOrderStatus('');
+        setPaymentStatus('');
+        setPaymentPrice(null);
+        setQuotedInputKey('');
+        setPricingStatus('idle');
+        setPricingError('');
+        pricingRequestGateRef.current.invalidate();
+        setParcel({ ...presets['poly-mailer'], preset: 'poly-mailer' });
+        setPackedConfirmed(false);
+        setFinalConfirmed(false);
+        dispatchSession({
+          type: 'new',
+          id: pendingIntent.selectionId,
+          rawSelection: pendingIntent.selectedText,
+          createdAt: pendingIntent.createdAt,
+        });
+        void consumePendingNewShipment(pendingIntent.selectionId);
+      }
       const changedSelectionId = changes[SELECTION_ID_KEY]?.newValue;
       const changedText = changes[SELECTION_KEY]?.newValue;
       if (typeof changedSelectionId === 'string') {
@@ -835,6 +895,7 @@ export function App() {
     setPaymentStatus('');
     setLabelError('');
     setCopyStatus('');
+    setCurrentView('shipment');
   };
 
   const resetExtensionData = async () => {
@@ -855,6 +916,27 @@ export function App() {
     }
   };
 
+  if (currentView === 'recent') {
+    return (
+      <main className="app">
+        <header className="brand">
+          <img className="brand-mark" src="/icons/icon48.png" alt="ShipDime shipping package icon" />
+          <strong>ShipDime</strong>
+        </header>
+        <button className="text-button" onClick={() => setCurrentView('shipment')}>
+          Back to shipment
+        </button>
+        <RecentLabels
+          labels={recentLabels}
+          onDownload={(shipment) => void downloadLabel(shipment)}
+          onPrint={(shipment) => void printSavedLabel(shipment)}
+          onCopy={(shipment) => void copyTracking(shipment)}
+          onSupport={(shipment) => void openSupport(shipment)}
+        />
+      </main>
+    );
+  }
+
   if (completedShipment) {
     return (
       <main className="app success-screen">
@@ -865,6 +947,9 @@ export function App() {
             alt="ShipDime shipping package icon"
           />
           <strong>ShipDime</strong>
+          <button className="text-button" onClick={() => setCurrentView('recent')}>
+            Recent Labels
+          </button>
         </header>
         <section className="success-card">
           <div className="success-icon">✓</div>
@@ -921,7 +1006,7 @@ export function App() {
             Start Another Shipment
           </button>
         </section>
-        <section className="card recent-labels">
+        {currentView === ('recent' as string) && <section className="card recent-labels">
           <h2>Recent Labels</h2>
           {recentLabels.slice(0, 10).map((entry) => (
             <article key={entry.label.id}>
@@ -948,7 +1033,7 @@ export function App() {
               </button>
             </article>
           ))}
-        </section>
+        </section>}
         <footer className="support-footer">
           <button className="text-button" onClick={() => void openSupport(completedShipment)}>
             Problem with a label?
@@ -971,6 +1056,9 @@ export function App() {
           <span>Test workflow</span>
         </div>
         <span className="demo-pill">DEMO</span>
+        <button className="text-button" onClick={() => setCurrentView('recent')}>
+          Recent Labels
+        </button>
       </header>
 
       <section className="intro">
@@ -1265,13 +1353,6 @@ export function App() {
           </button>
         )}
       </form>
-      <RecentLabels
-        labels={recentLabels}
-        onDownload={(shipment) => void downloadLabel(shipment)}
-        onPrint={(shipment) => void printSavedLabel(shipment)}
-        onCopy={(shipment) => void copyTracking(shipment)}
-        onSupport={(shipment) => void openSupport(shipment)}
-      />
       <footer className="support-footer">
         <button className="text-button" onClick={() => void openSupport()}>
           Need help?

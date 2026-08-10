@@ -11,6 +11,8 @@ import {
   EXTRACTION_RESULT_KEY,
   EXTRACTION_SESSION_ID_KEY,
   COMPLETED_SHIPMENT_KEY,
+  PAYMENT_ORDER_KEY,
+  PENDING_NEW_SHIPMENT_KEY,
 } from '../services/storage';
 
 const MENU_ID = 'create-shipping-label';
@@ -143,6 +145,13 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   const tabId = tab.id;
   const fallbackText = info.selectionText ?? '';
   const selectionId = crypto.randomUUID();
+  const createdAt = Date.now();
+  const pendingNewShipment = {
+    type: 'START_NEW_SHIPMENT' as const,
+    selectionId,
+    selectedText: fallbackText,
+    createdAt,
+  };
   console.log('Context-menu click received');
   console.log('Tab ID:', tabId);
 
@@ -151,11 +160,13 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       [SELECTION_KEY]: fallbackText,
       [SELECTION_ID_KEY]: selectionId,
       [SELECTION_STATUS_KEY]: 'loading',
-      [SELECTED_AT_KEY]: Date.now(),
+      [SELECTED_AT_KEY]: createdAt,
       [SOURCE_TAB_ID_KEY]: tabId,
       [EXTRACTION_RESULT_KEY]: null,
       [EXTRACTION_SESSION_ID_KEY]: null,
       [COMPLETED_SHIPMENT_KEY]: null,
+      [PAYMENT_ORDER_KEY]: null,
+      [PENDING_NEW_SHIPMENT_KEY]: pendingNewShipment,
       [SELECTION_DEBUG_KEY]: {
         rawSelectionText: fallbackText,
         structuredSelection: '',

@@ -15,7 +15,43 @@ export const COMPLETED_SHIPMENT_KEY = 'completedShipment';
 export const RECENT_LABELS_KEY = 'recentLabels';
 export const PAYMENT_ORDER_KEY = 'paymentOrder';
 export const PAYMENT_ORDERS_KEY = 'paymentOrders';
+export const PENDING_NEW_SHIPMENT_KEY = 'pendingNewShipment';
 export type SelectionStatus = 'idle' | 'loading' | 'ready' | 'fallback';
+
+export interface PendingNewShipment {
+  type: 'START_NEW_SHIPMENT';
+  selectionId: string;
+  selectedText: string;
+  createdAt: number;
+}
+
+export const isPendingNewShipment = (value: unknown): value is PendingNewShipment => {
+  if (!value || typeof value !== 'object') return false;
+  const intent = value as Record<string, unknown>;
+  return (
+    intent.type === 'START_NEW_SHIPMENT' &&
+    typeof intent.selectionId === 'string' &&
+    typeof intent.selectedText === 'string' &&
+    typeof intent.createdAt === 'number'
+  );
+};
+
+export async function loadPendingNewShipment(): Promise<PendingNewShipment | null> {
+  if (!hasChromeStorage()) return null;
+  const result = await chrome.storage.local.get(PENDING_NEW_SHIPMENT_KEY);
+  return isPendingNewShipment(result[PENDING_NEW_SHIPMENT_KEY])
+    ? result[PENDING_NEW_SHIPMENT_KEY]
+    : null;
+}
+
+export async function consumePendingNewShipment(selectionId: string): Promise<void> {
+  if (!hasChromeStorage()) return;
+  const result = await chrome.storage.local.get(PENDING_NEW_SHIPMENT_KEY);
+  const current = result[PENDING_NEW_SHIPMENT_KEY];
+  if (isPendingNewShipment(current) && current.selectionId === selectionId) {
+    await chrome.storage.local.remove(PENDING_NEW_SHIPMENT_KEY);
+  }
+}
 
 export interface SelectionDebugData {
   rawSelectionText: string;
@@ -225,6 +261,7 @@ export async function startAnotherShipment(): Promise<string> {
       [EXTRACTION_SESSION_ID_KEY]: null,
       [COMPLETED_SHIPMENT_KEY]: null,
       [PAYMENT_ORDER_KEY]: null,
+      [PENDING_NEW_SHIPMENT_KEY]: null,
     });
   }
   return selectionId;
