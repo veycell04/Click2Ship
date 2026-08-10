@@ -394,11 +394,18 @@ export function App() {
                 route.view === 'new-shipment' ? route.intent.createdAt : selectedAt || Date.now(),
             });
           }
-          if (
-            route.view !== 'new-shipment' &&
-            extractionResult &&
-            extractionSessionId === activeSelectionId
-          ) {
+          if (extractionResult && extractionSessionId === activeSelectionId) {
+            if (developmentDiagnosticsEnabled) console.log('ADDRESS_PARSE_RESULT', {
+              selectionId: activeSelectionId,
+              success: true,
+              fieldsPresent: {
+                fullName: Boolean(extractionResult.fullName),
+                address1: Boolean(extractionResult.address1),
+                city: Boolean(extractionResult.city),
+                state: Boolean(extractionResult.state),
+                zip: Boolean(extractionResult.zip),
+              },
+            });
             dispatchSession({
               type: 'ready',
               id: activeSelectionId,
@@ -432,6 +439,10 @@ export function App() {
       if (area !== 'local') return;
       const pendingIntent = changes[PENDING_NEW_SHIPMENT_KEY]?.newValue;
       if (isPendingNewShipment(pendingIntent)) {
+        if (developmentDiagnosticsEnabled) console.log('ADDRESS_PARSE_START', {
+          selectionId: pendingIntent.selectionId,
+          textLength: pendingIntent.selectedText.length,
+        });
         selectionIdRef.current = pendingIntent.selectionId;
         selectionTextRef.current = pendingIntent.selectedText;
         setCurrentView('shipment');

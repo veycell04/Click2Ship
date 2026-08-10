@@ -12,6 +12,10 @@ const aminu = `Aminu Mohammed
 Bronx,New York,United States
 10453`;
 
+const alejandro = `Alejandro Milan
+6201 N HILLS DR APT C
+RALEIGH, NC 27609-2880`;
+
 describe('UniversalAddressExtractor', () => {
   it.each([
     ['multiline', mesut],
@@ -54,6 +58,18 @@ describe('UniversalAddressExtractor', () => {
       city: 'Denver',
       state: 'CO',
       zip: '80202',
+    });
+  });
+
+  it('extracts the selected Alejandro address without platform-specific rules', async () => {
+    await expect(universalAddressExtractor.extract(alejandro)).resolves.toMatchObject({
+      fullName: 'Alejandro Milan',
+      address1: '6201 N HILLS DR',
+      address2: 'APT C',
+      city: 'RALEIGH',
+      state: 'NC',
+      zip: '27609-2880',
+      country: 'US',
     });
   });
 });

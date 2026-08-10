@@ -66,6 +66,7 @@ async function captureStructuredSelection(
     const response = await Promise.race([
       chrome.tabs.sendMessage(tabId, {
         type: 'GET_STRUCTURED_SELECTION',
+        selectionId,
       }) as Promise<StructuredSelectionResponse>,
       new Promise<never>((_resolve, reject) => {
         globalThis.setTimeout(

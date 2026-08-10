@@ -104,6 +104,13 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
 
   const selection = getStructuredSelection();
   const selectedText = selection.structuredText || selection.plainText;
+  const selectionId =
+    typeof message === 'object' && message !== null && 'selectionId' in message
+      ? String(message.selectionId)
+      : '';
+  if (import.meta.env.DEV) {
+    console.log('ADDRESS_PARSE_START', { selectionId, textLength: selectedText.length });
+  }
   const marketplaceAdapters = [new AmazonMarketplaceAdapter(), new TikTokMarketplaceAdapter()];
   const matchedAdapter = marketplaceAdapters.find((adapter) =>
     adapter.matches(window.location.href),
@@ -127,14 +134,30 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     rawAddressBlock ??= await new GenericMarketplaceAdapter(selectedText).extractRawAddressBlock();
     return universalAddressExtractor.extract(rawAddressBlock);
   })().then(
-    (extractionResult) =>
+    (extractionResult) => {
+      if (import.meta.env.DEV) console.log('ADDRESS_PARSE_RESULT', {
+        selectionId,
+        success: true,
+        fieldsPresent: {
+          fullName: Boolean(extractionResult.fullName),
+          address1: Boolean(extractionResult.address1),
+          city: Boolean(extractionResult.city),
+          state: Boolean(extractionResult.state),
+          zip: Boolean(extractionResult.zip),
+        },
+      });
       sendResponse({
         ...selection,
         detectedMarketplace,
         extractionResult,
-      }),
+      });
+    },
     (error: unknown) => {
-      console.error('ShipDime extraction coordinator error', error);
+      console.error('ADDRESS_PARSE_FAILED', {
+        selectionId,
+        errorName: error instanceof Error ? error.name : 'Error',
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
       sendResponse({
         ...selection,
         detectedMarketplace,
