@@ -33,8 +33,8 @@ describe('extension manifest', () => {
     expect(manifest.side_panel.default_path).toBe('sidepanel.html');
   });
 
-  it('permits backend requests to the configured loopback host', () => {
-    expect(manifest.host_permissions).toContain('http://127.0.0.1:3001/*');
+  it('permits backend requests only to the production API host', () => {
+    expect(manifest.host_permissions).toEqual(['https://click2-ship.vercel.app/*']);
   });
 
   it('declares PNG branding for the extension and toolbar action', () => {

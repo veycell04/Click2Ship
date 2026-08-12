@@ -12,7 +12,7 @@
   },
   "minimum_chrome_version": "116",
   "permissions": ["contextMenus", "sidePanel", "storage"],
-  "host_permissions": ["http://127.0.0.1:3001/*", "http://localhost:3001/*"],
+  "host_permissions": ["https://click2-ship.vercel.app/*"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
