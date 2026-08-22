@@ -87,7 +87,7 @@ export function PriceCard({
         </p>
       ) : status === 'error' ? (
         <div className="price-card-error" role="alert">
-          <p>{errorMessage === 'Quote expired' ? 'Quote expired' : 'Unable to calculate shipping price.'}</p>
+          <p>{errorMessage || 'Unable to calculate shipping price.'}</p>
           <button type="button" className="secondary compact" onClick={onRetry}>
             Retry
           </button>

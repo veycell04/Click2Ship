@@ -1,4 +1,5 @@
 import type { Address, PackageDetails } from '../domain/models';
+import { validateUsZip } from '../domain/usZip';
 
 export interface ShipmentDraft {
   selectedLabelTypeId: string;
@@ -23,7 +24,13 @@ export function getPricingRequirements(shipment: ShipmentDraft): PricingRequirem
     { key: `${section}.addressLine1`, label: `${section === 'sender' ? 'Sender' : 'Recipient'} address line 1`, section, valid: present(address.addressLine1), message: 'Required to calculate price' },
     { key: `${section}.city`, label: `${section === 'sender' ? 'Sender' : 'Recipient'} city`, section, valid: present(address.city), message: 'Required to calculate price' },
     { key: `${section}.state`, label: `${section === 'sender' ? 'Sender' : 'Recipient'} state`, section, valid: present(address.state), message: 'Required to calculate price' },
-    { key: `${section}.zipCode`, label: `${section === 'sender' ? 'Sender' : 'Recipient'} ZIP`, section, valid: present(address.zipCode), message: 'Required to calculate price' },
+    {
+      key: `${section}.zipCode`,
+      label: `${section === 'sender' ? 'Sender' : 'Recipient'} ZIP`,
+      section,
+      valid: validateUsZip(address.zipCode) === null,
+      message: validateUsZip(address.zipCode) ?? undefined,
+    },
     { key: `${section}.country`, label: `${section === 'sender' ? 'Sender' : 'Recipient'} country`, section, valid: present(address.country), message: 'Required to calculate price' },
   ] satisfies PricingRequirement[];
 

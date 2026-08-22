@@ -29,6 +29,21 @@ describe('pricing readiness requirements', () => {
     expect(missing.map((item) => item.key)).toContain('recipient.zipCode');
   });
 
+  it.each(['6010', '6010A', '123456', '60101-'])(
+    'blocks pricing for invalid sender ZIP %s',
+    (zipCode) => {
+      const draft = validDraft();
+      draft.sender.zipCode = zipCode;
+      const requirement = getPricingRequirements(draft).find(
+        (item) => item.key === 'sender.zipCode',
+      );
+      expect(requirement).toMatchObject({
+        valid: false,
+        message: 'Enter a valid 5-digit ZIP code or ZIP+4.',
+      });
+    },
+  );
+
   it('groups multiple missing dimensions', () => {
     const draft = validDraft();
     draft.package.length = '';

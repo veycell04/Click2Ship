@@ -1,5 +1,6 @@
 import { API_BASE_URL, apiUrl } from '../config/api';
 import type { Address, PackageDetails } from '../domain/models';
+import { normalizeUsZip } from '../domain/usZip';
 import type {
   BackendRequestMessage,
   BackendResponse,
@@ -131,7 +132,7 @@ const shippingAddress = (address: Address) => ({
   address2: address.addressLine2,
   city: address.city,
   state: address.state,
-  zip: address.zipCode,
+  zip: normalizeUsZip(address.zipCode),
   country: address.country || 'US',
 });
 

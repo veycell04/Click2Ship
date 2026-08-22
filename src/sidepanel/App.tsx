@@ -46,10 +46,12 @@ import {
 } from '../services/storage';
 import { resolveInitialSidePanelRoute } from './shipmentRouting';
 import { emptyShipmentSession, shipmentSessionReducer } from './shipmentSession';
+import { parseFallbackAddress } from './fallbackAddressParsing';
 import { copyText, downloadPdf, openPdfForPrint } from './labelActions';
 import { createPricingInputKey, describePricingError, PricingRequestGate } from './pricingState';
 import { PriceCard } from './PriceCard';
 import { LabelTypeSelect } from './LabelTypeSelect';
+import { mapBackendPricingFieldErrors } from './pricingFieldErrors';
 import { RecentLabels } from './RecentLabels';
 import { createSupportMailto } from './support';
 import { shipmentDestination, shipmentPackage } from './shipmentDisplay';
@@ -163,9 +165,10 @@ const fields: Array<{ key: AddressField; label: string; optional?: boolean; wide
   { key: 'phone', label: 'Phone', optional: true },
 ];
 
-function AddressForm({
+export function AddressForm({
   value,
   onChange,
+  onFieldEdited,
   prefix,
   missingByKey,
   touched,
@@ -173,6 +176,7 @@ function AddressForm({
 }: {
   value: Address;
   onChange: (next: Address) => void;
+  onFieldEdited: (key: string) => void;
   prefix: string;
   missingByKey: Map<string, PricingRequirement>;
   touched: Set<string>;
@@ -183,7 +187,9 @@ function AddressForm({
       {fields.map(({ key, label, optional, wide }) => {
         const requirementKey = `${prefix}.${key}`;
         const missing = missingByKey.get(requirementKey);
-        const showError = Boolean(missing && touched.has(requirementKey));
+        const showError = Boolean(
+          missing && (touched.has(requirementKey) || (key === 'zipCode' && value[key].trim() !== '')),
+        );
         return (
         <label className={`${wide ? 'wide' : ''}${showError ? ' field-missing' : ''}`} key={key}>
           <span>
@@ -192,10 +198,22 @@ function AddressForm({
           <input
             id={`${prefix}-${key}`}
             value={value[key]}
-            onChange={(event) => onChange({ ...value, [key]: event.target.value })}
+            onChange={(event) => {
+              onFieldEdited(requirementKey);
+              onChange({ ...value, [key]: event.target.value });
+            }}
             required={!optional}
             autoComplete={key === 'zipCode' ? 'postal-code' : 'off'}
-            onBlur={() => onTouched(requirementKey)}
+            onBlur={() => {
+              if (key === 'zipCode') {
+                const normalizedZip = value[key].trim();
+                if (normalizedZip !== value[key]) {
+                  onFieldEdited(requirementKey);
+                  onChange({ ...value, [key]: normalizedZip });
+                }
+              }
+              onTouched(requirementKey);
+            }}
             aria-invalid={showError || undefined}
             aria-describedby={showError ? `${prefix}-${key}-pricing-error` : undefined}
           />
@@ -254,6 +272,9 @@ export function App() {
     () => new Set(),
   );
   const [pricingError, setPricingError] = useState('');
+  const [backendPricingFieldErrors, setBackendPricingFieldErrors] = useState<
+    PricingRequirement[]
+  >([]);
   const [quotedInputKey, setQuotedInputKey] = useState('');
   const [pricingDiagnostic, setPricingDiagnostic] = useState({
     url: click2ShipBackendClient.urlFor('/api/pricing/quote'),
@@ -276,6 +297,40 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    const parseStoredFallback = (selectionId: string, selectedAddressText: string) => {
+      if (!selectionId || !selectedAddressText.trim()) {
+        dispatchSession({ type: 'error', id: selectionId, rawSelection: selectedAddressText });
+        return;
+      }
+
+      dispatchSession({ type: 'parsing', id: selectionId });
+      void parseFallbackAddress(selectedAddressText)
+        .then((result) => {
+          if (selectionIdRef.current !== selectionId) {
+            console.log('Ignoring stale extraction result', {
+              staleSelectionId: selectionId,
+              currentSelectionId: selectionIdRef.current,
+            });
+            return;
+          }
+          console.log('Applying fallback extraction result', {
+            selectionId,
+            extractionResult: result,
+          });
+          dispatchSession({
+            type: 'ready',
+            id: selectionId,
+            rawSelection: selectedAddressText,
+            result,
+          });
+        })
+        .catch((error: unknown) => {
+          console.error('Fallback address parsing failed', error);
+          if (selectionIdRef.current !== selectionId) return;
+          dispatchSession({ type: 'error', id: selectionId, rawSelection: selectedAddressText });
+        });
+    };
+
     void Promise.all([
       loadSelectionId(),
       loadSelection(),
@@ -412,12 +467,8 @@ export function App() {
               rawSelection: activeText,
               result: extractionResult,
             });
-          } else if (
-            route.view !== 'new-shipment' &&
-            activeSelectionId &&
-            savedStatus === 'fallback'
-          ) {
-            dispatchSession({ type: 'error', id: activeSelectionId, rawSelection: activeText });
+          } else if (activeSelectionId && activeText.trim() && savedStatus === 'fallback') {
+            parseStoredFallback(activeSelectionId, activeText);
           }
           if (route.view === 'new-shipment') {
             setCurrentView('shipment');
@@ -454,6 +505,7 @@ export function App() {
         setQuotedInputKey('');
         setPricingStatus('idle');
         setPricingError('');
+        setBackendPricingFieldErrors([]);
         pricingRequestGateRef.current.invalidate();
         setParcel({ ...presets['poly-mailer'], preset: 'poly-mailer' });
         setPackedConfirmed(false);
@@ -528,11 +580,7 @@ export function App() {
       if (nextDebug) setSelectionDebug(nextDebug);
       const nextStatus = changes[SELECTION_STATUS_KEY]?.newValue;
       if (nextStatus === 'fallback' && !isAddressExtractionResult(extractionValue)) {
-        dispatchSession({
-          type: 'error',
-          id: selectionIdRef.current,
-          rawSelection: selectionTextRef.current,
-        });
+        parseStoredFallback(selectionIdRef.current, selectionTextRef.current);
       } else if (nextStatus === 'loading') {
         dispatchSession({ type: 'parsing', id: selectionIdRef.current });
       }
@@ -611,8 +659,14 @@ export function App() {
     [pricingRequirements],
   );
   const missingPricingByKey = useMemo(
-    () => new Map(missingPricingRequirements.map((requirement) => [requirement.key, requirement])),
-    [missingPricingRequirements],
+    () =>
+      new Map(
+        [...missingPricingRequirements, ...backendPricingFieldErrors].map((requirement) => [
+          requirement.key,
+          requirement,
+        ]),
+      ),
+    [backendPricingFieldErrors, missingPricingRequirements],
   );
   const pricingReady = missingPricingRequirements.length === 0;
   const canRequestPricing = pricingReady && pricingInput.selectionId !== '';
@@ -632,6 +686,10 @@ export function App() {
     element?.focus({ preventScroll: true });
     element?.classList.add('pricing-focus-flash');
     window.setTimeout(() => element?.classList.remove('pricing-focus-flash'), 1200);
+  }, []);
+
+  const clearBackendPricingFieldError = useCallback((key: string) => {
+    setBackendPricingFieldErrors((current) => current.filter((error) => error.key !== key));
   }, []);
 
   const loadPaymentPrice = useCallback(async (input: typeof pricingInput) => {
@@ -654,6 +712,7 @@ export function App() {
       setPaymentPrice(price);
       setQuotedInputKey(createPricingInputKey(input));
       setPricingStatus('success');
+      setBackendPricingFieldErrors([]);
       setPricingDiagnostic({
         url: requestedUrl,
         status: 200,
@@ -670,10 +729,21 @@ export function App() {
     } catch (error) {
       if (!pricingRequestGateRef.current.isCurrent(requestId)) return;
       const clientError = error instanceof BackendClientError ? error : null;
+      const fieldErrors = mapBackendPricingFieldErrors(error);
       setPaymentPrice(null);
       setQuotedInputKey('');
       setPricingStatus('error');
-      setPricingError(describePricingError(error));
+      setBackendPricingFieldErrors(fieldErrors);
+      if (fieldErrors.length > 0) {
+        setTouchedPricingFields((current) => {
+          const next = new Set(current);
+          fieldErrors.forEach((fieldError) => next.add(fieldError.key));
+          return next;
+        });
+      }
+      setPricingError(
+        fieldErrors.length > 0 ? 'Please fix the highlighted fields.' : describePricingError(error),
+      );
       setPricingDiagnostic({
         url: clientError?.requestedUrl || requestedUrl,
         status: clientError?.status ?? 0,
@@ -734,6 +804,9 @@ export function App() {
     Number(parcel.height) > 0;
 
   const changePreset = (preset: PackageDetails['preset']) => {
+    ['package.weight', 'package.length', 'package.width', 'package.height'].forEach(
+      clearBackendPricingFieldError,
+    );
     setParcel((current) => ({ ...current, ...presets[preset], preset }));
   };
 
@@ -748,6 +821,7 @@ export function App() {
     createInFlightRef.current = true;
     setCreatingLabel(true);
     setLabelError('');
+    setBackendPricingFieldErrors([]);
     setCreateLabelDiagnostic(null);
     try {
       const checkout = await click2ShipBackendClient.createCheckout(
@@ -1153,6 +1227,7 @@ export function App() {
             onChange={(next) =>
               dispatchSession({ type: 'edit-recipient', id: shipmentSession.id, recipient: next })
             }
+            onFieldEdited={clearBackendPricingFieldError}
             prefix="recipient"
             missingByKey={missingPricingByKey}
             touched={touchedPricingFields}
@@ -1171,6 +1246,7 @@ export function App() {
           <AddressForm
             value={sender}
             onChange={setSender}
+            onFieldEdited={clearBackendPricingFieldError}
             prefix="sender"
             missingByKey={missingPricingByKey}
             touched={touchedPricingFields}
@@ -1218,11 +1294,17 @@ export function App() {
               labelTypes={labelTypes}
               selectedLabelTypeId={selectedLabelTypeId}
               onChange={(value) => {
+                clearBackendPricingFieldError('service.labelType');
                 setSelectedLabelTypeId(value);
                 setTouchedPricingFields((current) => new Set(current).add('service.labelType'));
               }}
               invalid={missingPricingByKey.has('service.labelType') && touchedPricingFields.has('service.labelType')}
             />
+            {missingPricingByKey.has('service.labelType') && touchedPricingFields.has('service.labelType') && (
+              <small id="service-labelType-pricing-error" className="field-error">
+                <span aria-hidden="true">! </span>{missingPricingByKey.get('service.labelType')?.message}
+              </small>
+            )}
           </label>
           <div className="dimensions">
             {(['weight', 'length', 'width', 'height'] as const).map((key) => (
@@ -1241,13 +1323,14 @@ export function App() {
                   step={key === 'weight' ? 0.01 : 0.1}
                   value={parcel[key]}
                   required
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    clearBackendPricingFieldError(`package.${key}`);
                     setParcel({
                       ...parcel,
                       [key]: event.target.value,
                       ...(key !== 'weight' ? { preset: 'custom' as const } : {}),
-                    })
-                  }
+                    });
+                  }}
                   onBlur={() => setTouchedPricingFields((current) => new Set(current).add(`package.${key}`))}
                   aria-invalid={missingPricingByKey.has(`package.${key}`) && touchedPricingFields.has(`package.${key}`) || undefined}
                   aria-describedby={missingPricingByKey.has(`package.${key}`) && touchedPricingFields.has(`package.${key}`) ? `package-${key}-pricing-error` : undefined}

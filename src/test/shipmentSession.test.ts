@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AddressExtractionResult } from '../domain/models';
+import { parseFallbackAddress } from '../sidepanel/fallbackAddressParsing';
 import { emptyShipmentSession, shipmentSessionReducer } from '../sidepanel/shipmentSession';
 
 const extraction = (fullName: string, address1: string, city: string): AddressExtractionResult => ({
@@ -73,6 +74,42 @@ describe('ShipmentSession', () => {
       city: 'Addison',
       state: 'IL',
       zipCode: '60101',
+      country: 'US',
+      phone: '',
+    });
+  });
+
+  it('parses selected text and reaches ready when the content script is unavailable', async () => {
+    const selectedAddressText =
+      'Daniel Carter 1847 Oakwood Drive Austin, TX 78704 United States';
+    let session = shipmentSessionReducer(emptyShipmentSession(), {
+      type: 'new',
+      id: 'fallback-selection',
+      rawSelection: selectedAddressText,
+      createdAt: 3,
+    });
+    session = shipmentSessionReducer(session, {
+      type: 'parsing',
+      id: 'fallback-selection',
+    });
+
+    const result = await parseFallbackAddress(selectedAddressText);
+    session = shipmentSessionReducer(session, {
+      type: 'ready',
+      id: 'fallback-selection',
+      rawSelection: selectedAddressText,
+      result,
+    });
+
+    expect(session.status).toBe('ready');
+    expect(session.parsedRecipient).toEqual({
+      fullName: 'Daniel Carter',
+      company: '',
+      addressLine1: '1847 Oakwood Drive',
+      addressLine2: '',
+      city: 'Austin',
+      state: 'TX',
+      zipCode: '78704',
       country: 'US',
       phone: '',
     });

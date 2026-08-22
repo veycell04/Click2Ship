@@ -1,4 +1,5 @@
 import type { CreateLabelInput, ShippingAddress } from '../types/shipping.js';
+import { DomesticShippingOnlyError, normalizeCountry } from '../services/domesticShipping.js';
 
 const stateCodes = new Set(
   'AL AK AS AZ AR CA CO CT DE DC FM FL GA GU HI ID IL IN IA KS KY LA ME MH MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND MP OH OK OR PW PA PR RI SC SD TN TX UT VT VI VA WA WV WI WY AE AA AP'.split(
@@ -7,13 +8,6 @@ const stateCodes = new Set(
 );
 const zipPattern = /^\d{5}(?:-\d{4})?$/;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const acceptedUnitedStatesNames = new Set([
-  'US',
-  'USA',
-  'UNITED STATES',
-  'UNITED STATES OF AMERICA',
-]);
-
 export class RequestValidationError extends Error {
   readonly statusCode = 422;
 
@@ -45,11 +39,11 @@ function address(value: unknown, field: string): ShippingAddress {
   const input = value as Record<string, unknown>;
   const state = text(input.state, `${field}.state`).toUpperCase();
   const zip = text(input.zip, `${field}.zip`);
-  const country = text(input.country ?? 'US', `${field}.country`).toUpperCase();
+  const countryText = text(input.country ?? 'US', `${field}.country`);
+  const country = normalizeCountry(countryText);
   if (!stateCodes.has(state)) throw new RequestValidationError(`${field}.state`, 'Invalid state.');
   if (!zipPattern.test(zip)) throw new RequestValidationError(`${field}.zip`, 'Invalid ZIP code.');
-  if (!acceptedUnitedStatesNames.has(country))
-    throw new RequestValidationError(`${field}.country`, 'Must be a United States address.');
+  if (!country) throw new DomesticShippingOnlyError();
   return {
     fullName: text(input.fullName, `${field}.fullName`),
     company: text(input.company ?? '', `${field}.company`, false),
@@ -59,7 +53,7 @@ function address(value: unknown, field: string): ShippingAddress {
     city: text(input.city, `${field}.city`),
     state,
     zip,
-    country: 'US',
+    country,
   };
 }
 

@@ -21,6 +21,11 @@ import { normalizeLabelProviderError } from './services/normalizeLabelProviderEr
 import { getShippingServiceMapping } from './services/shippingServiceMapping.js';
 import { LabelProviderError } from './services/labelProviderError.js';
 import { buildLabelSuccessDetails } from './services/labelSuccessDetails.js';
+import {
+  DOMESTIC_SHIPPING_ONLY_RESPONSE,
+  DomesticShippingOnlyError,
+  validateDomesticShipment,
+} from './services/domesticShipping.js';
 
 export async function buildApp(
   config: BackendConfig,
@@ -152,6 +157,9 @@ export async function buildApp(
           quote: await pricingService.getQuote(input),
         };
       } catch (error) {
+        if (error instanceof DomesticShippingOnlyError) {
+          return reply.code(422).send(DOMESTIC_SHIPPING_ONLY_RESPONSE);
+        }
         if (error instanceof RequestValidationError) {
           return reply.code(422).send({
             success: false,
@@ -233,7 +241,12 @@ export async function buildApp(
         }
       }
 
-      const purchased = { label: await provider.createLabel(order.shipmentSnapshot), pdfUrl: '' };
+      const domesticAddresses = validateDomesticShipment(
+        order.shipmentSnapshot.sender,
+        order.shipmentSnapshot.recipient,
+      );
+      const domesticShipment = { ...order.shipmentSnapshot, ...domesticAddresses };
+      const purchased = { label: await provider.createLabel(domesticShipment), pdfUrl: '' };
       const providerLabel = purchased.label;
       const label = {
         ...providerLabel,
@@ -295,7 +308,19 @@ export async function buildApp(
           message: 'The stored pricing quote is incomplete.',
         });
       }
-      const shipment = quote.shipmentSnapshot;
+      let domesticAddresses;
+      try {
+        domesticAddresses = validateDomesticShipment(
+          quote.shipmentSnapshot.sender,
+          quote.shipmentSnapshot.recipient,
+        );
+      } catch (error) {
+        if (error instanceof DomesticShippingOnlyError) {
+          return reply.code(422).send(DOMESTIC_SHIPPING_ONLY_RESPONSE);
+        }
+        throw error;
+      }
+      const shipment = { ...quote.shipmentSnapshot, ...domesticAddresses };
       const selectionId = shipment.selectionId;
       const existing = await orderRepository.findBySelectionId(selectionId);
       if (
@@ -588,7 +613,8 @@ export async function buildApp(
       return reply.code(202).send({ success: false, status: existing.status });
     }
     try {
-      const providerLabel = await provider.createLabel(input);
+      const domesticAddresses = validateDomesticShipment(input.sender, input.recipient);
+      const providerLabel = await provider.createLabel({ ...input, ...domesticAddresses });
       const label = {
         ...providerLabel,
         labelTypeId: input.labelTypeId,
@@ -656,6 +682,8 @@ export async function buildApp(
   );
 
   app.setErrorHandler((error, _request, reply) => {
+    if (error instanceof DomesticShippingOnlyError)
+      return reply.code(422).send(DOMESTIC_SHIPPING_ONLY_RESPONSE);
     if (error instanceof RequestValidationError)
       return reply.code(422).send({
         success: false,
