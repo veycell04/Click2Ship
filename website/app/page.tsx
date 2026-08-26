@@ -33,6 +33,34 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="section demo-section" aria-labelledby="demo-title">
+        <div className="shell demo-layout">
+          <div className="demo-heading">
+            <p className="eyebrow">Product demo</p>
+            <h2 id="demo-title">See ShipDime in action</h2>
+            <p>Highlight a shipping address, right-click ShipDime, review your shipment, and create your label in seconds.</p>
+          </div>
+          <div className="demo-video-frame">
+            <video
+              className="demo-video"
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls
+              preload="metadata"
+              aria-label="ShipDime Chrome extension product demonstration"
+            >
+              <source src="/videos/shipdime-demo.mp4" type="video/mp4" />
+              Your browser does not support embedded videos.
+            </video>
+          </div>
+          <div className="demo-actions">
+            <ChromeCta label="Add ShipDime to Chrome" />
+          </div>
+        </div>
+      </section>
+
       <section className="section" id="how-it-works">
         <div className="shell"><div className="section-heading"><p className="eyebrow">How it works</p><h2>From highlighted address to shipping label.</h2><p>Five clear steps. No tab-hopping or repetitive entry.</p></div><ol className="steps">{steps.map(([number, title, copy]) => <li key={number}><span>{number}</span><h3>{title}</h3><p>{copy}</p></li>)}</ol></div>
       </section>
