@@ -1,0 +1,34 @@
+# ShipDime
+
+ShipDime is a Chrome extension for U.S. online sellers that helps create shipping labels from recipient addresses selected directly on webpages.
+
+Tagline: Select. Right-click. Ship.
+Company: Veycell LLC
+Website: https://www.shipdime.com
+
+## Public pages
+
+- Homepage: https://www.shipdime.com/
+- What is ShipDime?: https://www.shipdime.com/about
+- Create a label from a website: https://www.shipdime.com/create-shipping-label-from-website
+- Shipping without a dedicated integration: https://www.shipdime.com/shipping-label-without-integration
+- Multi-channel shipping: https://www.shipdime.com/multi-channel-shipping
+- Chrome extension shipping labels: https://www.shipdime.com/chrome-extension-shipping-labels
+- Comparison hub: https://www.shipdime.com/compare
+- Create your own shipping label: https://www.shipdime.com/how-to-create-your-own-shipping-label
+- Shipping without marketplace integration: https://www.shipdime.com/shipping-label-without-marketplace-integration
+- Stop copying and pasting addresses: https://www.shipdime.com/stop-copy-pasting-shipping-addresses
+- Shipping orders from multiple marketplaces: https://www.shipdime.com/shipping-orders-from-multiple-marketplaces
+- Create from a customer address: https://www.shipdime.com/create-shipping-label-from-customer-address
+- Manual labels versus integrations: https://www.shipdime.com/manual-shipping-label-vs-shipping-integration
+- Shipping label pricing: https://www.shipdime.com/cheap-shipping-labels
+- Shipping label Chrome extension: https://www.shipdime.com/shipping-label-chrome-extension
+- Address-selection workflow: https://www.shipdime.com/create-shipping-label-from-any-website
+- Multi-channel shipping labels: https://www.shipdime.com/multi-channel-shipping-labels
+- Support: https://www.shipdime.com/support
+- Privacy: https://www.shipdime.com/privacy
+- Terms: https://www.shipdime.com/terms
+
+## Current scope
+
+ShipDime currently supports U.S. domestic shipping. Current label types include available USPS Ground Advantage and USPS Priority Mail. Savings and service availability may vary by shipment. If a shipping address is available as selectable text in the browser, the user can explicitly select it to begin the workflow; ShipDime does not claim compatibility with every website.

@@ -41,7 +41,7 @@ Import the repository and configure:
 - Build Command: `npm run build`
 - Output Directory: leave unset (Next.js default)
 
-Add `NEXT_PUBLIC_CHROME_STORE_URL` only when the public listing is ready. The site is intended to be served at `https://shipdime.com`.
+Add `NEXT_PUBLIC_CHROME_STORE_URL` only when the public listing is ready. The site is intended to be served at `https://www.shipdime.com`.
 
 ## Legal review
 
@@ -51,4 +51,3 @@ The privacy and terms pages reflect current application behavior observed in the
 - refund or void eligibility for purchased but unused labels;
 - handling of duplicate charges and carrier adjustments;
 - governing law, legal entity details, liability limits, and dispute terms.
-

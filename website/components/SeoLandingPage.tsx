@@ -16,20 +16,6 @@ interface SeoLandingPageProps {
 }
 
 export function SeoLandingPage({ eyebrow, title, introduction, children, faqs }: SeoLandingPageProps) {
-  const softwareSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    name: 'ShipDime',
-    applicationCategory: 'BusinessApplication',
-    operatingSystem: 'Chrome',
-    description: introduction,
-    url: 'https://shipdime.com',
-    offers: {
-      '@type': 'Offer',
-      category: 'Shipping label service',
-    },
-  };
-
   const faqSchema = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -42,7 +28,6 @@ export function SeoLandingPage({ eyebrow, title, introduction, children, faqs }:
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
 
       <section className="seo-hero">
@@ -86,7 +71,12 @@ export function SeoLandingPage({ eyebrow, title, introduction, children, faqs }:
           <ChromeCta />
           <nav className="seo-links" aria-label="Related ShipDime pages">
             <Link href="/">Home</Link>
+            <Link href="/about">About</Link>
+            <Link href="/shipping-label-chrome-extension">Chrome extension</Link>
+            <Link href="/create-shipping-label-from-any-website">Address selection workflow</Link>
+            <Link href="/multi-channel-shipping-labels">Multi-channel shipping</Link>
             <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
             <Link href="/support">Support</Link>
           </nav>
         </div>

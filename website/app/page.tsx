@@ -23,13 +23,20 @@ export default function Home() {
       <section className="hero">
         <div className="shell hero-grid">
           <div>
-            <p className="eyebrow">ShipDime · Shipping made simple.</p>
-            <h1>Create shipping labels directly from any address.</h1>
-            <p className="hero-copy">Highlight a shipping address on the web, right-click, review your shipment, and create your shipping label with ShipDime.</p>
+            <p className="eyebrow">ShipDime · Select. Right-click. Ship.</p>
+            <h1>Create shipping labels from selectable addresses in Chrome.</h1>
+            <p className="hero-copy">If a shipping address is available as selectable text in the browser, highlight it, right-click, review your shipment, and create your U.S. domestic shipping label with ShipDime.</p>
             <div className="actions"><ChromeCta /><a className="button secondary" href="#how-it-works">See how it works</a></div>
             <p className="microcopy">Review the price and shipment details before you pay.</p>
           </div>
           <div className="hero-mark" aria-hidden="true"><span className="address-line wide" /><span className="address-line" /><span className="address-line short" /><div className="cursor-menu"><b>Create shipping label</b><span>with ShipDime</span></div></div>
+        </div>
+      </section>
+
+      <section className="section home-about">
+        <div className="shell trust-grid">
+          <div><p className="eyebrow">What is ShipDime?</p><h2>A browser-based shipping-label workflow for U.S. online sellers.</h2></div>
+          <div><p>ShipDime lets a seller select a recipient address on a webpage and start a shipping-label workflow from Chrome. It does not require a dedicated integration with each sales channel for the address-selection workflow.</p><p>Review <a href="/about">what ShipDime is</a>, learn how to <a href="/create-shipping-label-from-website">create a label from a website</a>, or visit the <a href="/compare">shipping-platform comparison hub</a>.</p></div>
         </div>
       </section>
 
@@ -73,7 +80,9 @@ export default function Home() {
 
       <section className="section trust-section"><div className="shell trust-grid"><div><p className="eyebrow">Review before purchase</p><h2>Clear shipment details. Clear pricing.</h2></div><div><p>Your price is shown before payment. You review recipient, sender, package, and service information before creating a label.</p><p>Payment is processed securely. Completed labels and tracking information remain accessible through Recent Labels.</p></div></div></section>
 
-      <section className="section final-cta"><div className="shell"><p className="eyebrow">Ready when you are</p><h2>Shipping made simple.</h2><p>Create labels directly from addresses on the web.</p><ChromeCta /></div></section>
+      <section className="section"><div className="shell"><div className="section-heading"><p className="eyebrow">Seller questions</p><h2>Practical guides for individual and disconnected orders.</h2><p>Direct answers about label creation, address entry, marketplace connections, and shipping prices.</p></div><div className="comparison-card-grid"><article><h3>Create your own shipping label</h3><p>Learn the sender, recipient, package, service, purchase, and printing steps.</p><a href="/how-to-create-your-own-shipping-label">Read the guide →</a></article><article><h3>Stop copying address fields</h3><p>Compare repeated field transfer with ShipDime&apos;s select, right-click, and review workflow.</p><a href="/stop-copy-pasting-shipping-addresses">See the workflow →</a></article><article><h3>Ship without marketplace integration</h3><p>Understand when selectable recipient text can start a label without a dedicated channel connection.</p><a href="/shipping-label-without-marketplace-integration">Learn how →</a></article><article><h3>Compare shipping-label prices</h3><p>See what affects a rate and how to evaluate conditional savings without cheapest-price guarantees.</p><a href="/cheap-shipping-labels">Review pricing factors →</a></article></div></div></section>
+
+      <section className="section final-cta"><div className="shell"><p className="eyebrow">Select. Right-click. Ship.</p><h2>Start with the address already on your screen.</h2><p>Learn more about the <a href="/shipping-label-chrome-extension">ShipDime Chrome extension</a> or create your next U.S. domestic label.</p><ChromeCta /></div></section>
     </>
   );
 }
