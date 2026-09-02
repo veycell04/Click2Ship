@@ -1,4 +1,10 @@
+import type { Metadata } from 'next';
 import { ChromeCta } from '../components/ChromeCta';
+import { GroundAdvantageSpotChecks } from '../components/GroundAdvantageSpotChecks';
+
+const title = 'Cheap Shipping Labels From Chrome | ShipDime';
+const description = 'Create U.S. shipping labels directly from Chrome, check discounted shipping rates, and skip repetitive address copy and paste with ShipDime.';
+export const metadata: Metadata = { title, description, alternates: { canonical: '/' }, openGraph: { title, description, url: '/', type: 'website' } };
 
 const steps = [
   ['01', 'Highlight an address', 'Select the shipping address where you already work.'],
@@ -24,14 +30,16 @@ export default function Home() {
         <div className="shell hero-grid">
           <div>
             <p className="eyebrow">ShipDime · Select. Right-click. Ship.</p>
-            <h1>Create shipping labels from selectable addresses in Chrome.</h1>
-            <p className="hero-copy">If a shipping address is available as selectable text in the browser, highlight it, right-click, review your shipment, and create your U.S. domestic shipping label with ShipDime. Create shipping labels faster and save up to 20% on eligible rates.</p>
-            <div className="actions"><ChromeCta /><a className="button secondary" href="/cheap-shipping-labels">Check Your Shipping Price</a></div>
+            <h1>Fast shipping labels. Seriously low prices.</h1>
+            <p className="hero-copy">Create U.S. shipping labels directly from Chrome and get discounted shipping rates without the copy-and-paste workflow. Select. Right-click. Ship.</p>
+            <div className="actions"><ChromeCta /><a className="button secondary" href="/cheap-shipping-labels">Check Your Rate</a></div>
             <p className="microcopy"><a href="#how-it-works">See how it works</a>. Actual rates and savings vary by shipment.</p>
           </div>
           <div className="hero-mark" aria-hidden="true"><span className="address-line wide" /><span className="address-line" /><span className="address-line short" /><div className="cursor-menu"><b>Create shipping label</b><span>with ShipDime</span></div></div>
         </div>
       </section>
+
+      <section className="section home-spot-checks"><div className="shell"><GroundAdvantageSpotChecks heading="How low are ShipDime rates?" compact /></div></section>
 
       <section className="section commercial-callout">
         <div className="shell commercial-callout-inner"><div><p className="eyebrow">Shipping label pricing</p><h2>Looking for cheaper shipping labels?</h2><p>Shipping costs add up. ShipDime lets you review your shipping price before purchasing and offers up to 20% savings on eligible rates.</p><small>Actual rates and savings vary by shipment. No provider is guaranteed to be cheapest for every label.</small></div><a className="button primary" href="/cheap-shipping-labels">Check Your Shipping Price</a></div>

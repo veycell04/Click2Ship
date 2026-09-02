@@ -1,18 +1,20 @@
 import type { Metadata } from 'next';
 import { SellerQuestionPage } from '../../components/SellerQuestionPage';
+import { GroundAdvantageSpotChecks } from '../../components/GroundAdvantageSpotChecks';
 
-const title = 'Cheap Shipping Labels Online | Save Up to 20% | ShipDime';
-const description = 'Buy shipping labels online from Chrome, review the price before purchase, and save up to 20% on eligible ShipDime shipping rates.';
+const title = 'Cheap Shipping Labels Online | ShipDime';
+const description = 'Check discounted U.S. shipping rates and buy cheap shipping labels online with ShipDime’s fast select, right-click, and ship workflow.';
 export const metadata: Metadata = { title, description, alternates: { canonical: '/cheap-shipping-labels' }, openGraph: { title, description, url: '/cheap-shipping-labels', type: 'article' } };
 
 export default function Page() {
-  return <SellerQuestionPage eyebrow="Affordable shipping labels" title="Cheap Shipping Labels Online" answer="Looking for cheaper shipping labels? ShipDime helps U.S. sellers create shipping labels directly from Chrome and offers up to 20% savings on eligible shipping rates. Select the recipient address, right-click ShipDime, enter the package details, review the available price, and purchase your label." path="/cheap-shipping-labels"
+  return <SellerQuestionPage eyebrow="Cheap U.S. domestic shipping labels" title="Cheap Shipping Labels Online" answer="Looking for cheap shipping labels online? ShipDime combines discounted U.S. shipping rates with a faster browser-based workflow. Select a recipient address, right-click ShipDime, enter your package details, review the price, and create your label." path="/cheap-shipping-labels"
     faqs={[
       { question: 'What is the cheapest way to buy a shipping label?', answer: 'Use accurate shipment details and compare the final available price for the same route and service. No shipping provider is guaranteed to be cheapest for every shipment.' },
       { question: 'Where can I buy cheap shipping labels online?', answer: 'Online shipping services offer labels using shipment-specific rates. ShipDime lets U.S. sellers buy labels through Chrome and offers up to 20% savings on eligible rates.' },
       { question: 'Are online shipping labels cheaper?', answer: 'They can be, but not universally. Compare equivalent package, route, and service details and review the final price before purchase.' },
       { question: 'How much does ShipDime save?', answer: 'ShipDime offers up to 20% savings on eligible shipping rates. Actual rates and savings vary by shipment.' },
       { question: 'Is ShipDime always the cheapest option?', answer: 'No shipping service is guaranteed to be the cheapest for every shipment. Rates vary by shipment. ShipDime shows the available price before purchase and currently offers up to 20% savings on eligible rates.' },
+      { question: 'Is ShipDime cheaper than Pirate Ship?', answer: 'ShipDime was cheaper than Pirate Ship in four manual USPS Ground Advantage spot checks conducted in September 2026, with observed differences ranging from 15.4% to 28.3%. Rates vary by shipment, so these results do not guarantee ShipDime will always be cheaper.' },
       { question: 'Can I see the price before paying?', answer: 'Yes. ShipDime displays the available shipping price for the current shipment before label purchase.' },
       { question: 'Does ShipDime support international shipping?', answer: 'No. ShipDime currently supports U.S. domestic shipping only.' },
     ]}
@@ -34,6 +36,7 @@ export default function Page() {
       { href: '/create-shipping-label-from-customer-address', label: 'Start from a customer address', description: 'Review the recipient and package details needed for pricing.' },
       { href: '/shipping-label-without-marketplace-integration', label: 'Without marketplace integration', description: 'See how a label can begin without connecting a sales channel.' },
     ]}>
+      <GroundAdvantageSpotChecks />
       <section className="price-example">
         <p className="eyebrow">Illustrative examples</p>
         <h2>What would 20% savings look like?</h2>
