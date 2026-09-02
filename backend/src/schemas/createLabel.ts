@@ -70,8 +70,8 @@ export function parseCreateLabelRequest(value: unknown): CreateLabelInput {
       throw new RequestValidationError(field, 'Must be a number greater than zero.');
     return value;
   };
-  if (!Number.isFinite(weight) || weight < 2)
-    throw new RequestValidationError('weight', 'Must be a number of at least 2.');
+  if (!Number.isFinite(weight) || weight < 0.1 || weight > 70)
+    throw new RequestValidationError('weight', 'Weight must be between 0.1 and 70 lb.');
   const selectionId = text(input.selectionId, 'selectionId', true, 64);
   if (!uuidPattern.test(selectionId))
     throw new RequestValidationError('selectionId', 'Must be a UUID.');

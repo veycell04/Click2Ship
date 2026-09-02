@@ -26,6 +26,8 @@ export const normalizeCarrier = (value: string): SupportedCarrier | null => {
   return null;
 };
 
+export const poundsToOunces = (weightLb: number): number => weightLb * 16;
+
 const SERVICE_NAMES: Record<string, string> = {
   'USPS:Priority': 'USPS Priority Mail', 'USPS:GroundAdvantage': 'USPS Ground Advantage',
   'USPS:Express': 'USPS Priority Mail Express', 'FedEx:FEDEX_GROUND': 'FedEx Ground',
@@ -55,7 +57,7 @@ export class EasyPostRateProvider implements RateProvider {
     try {
       const shipment = await this.shipmentClient.create({
         from_address: address(input.sender), to_address: address(input.recipient),
-        parcel: { weight: input.weight * 16, length: input.length, width: input.width, height: input.height },
+        parcel: { weight: poundsToOunces(input.weight), length: input.length, width: input.width, height: input.height },
       });
       const rawRates = shipment.rates ?? [];
       const rates = rawRates.flatMap((rate): ReferenceRate[] => {

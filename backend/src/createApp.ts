@@ -150,6 +150,22 @@ export async function buildApp(
 
   if (pricingService) {
     app.post('/api/pricing/quote', async (request, reply) => {
+      const candidate =
+        request.body && typeof request.body === 'object'
+          ? (request.body as Record<string, unknown>)
+          : {};
+      request.log.info(
+        {
+          selectedService: candidate.labelTypeId,
+          weight: candidate.weight,
+          weightUnit: 'lb',
+          length: candidate.length,
+          width: candidate.width,
+          height: candidate.height,
+          dimensionUnit: 'in',
+        },
+        'PRICING_QUOTE_INPUT_BEFORE_VALIDATION',
+      );
       try {
         const input = parsePricingQuoteInput(request.body);
         return {

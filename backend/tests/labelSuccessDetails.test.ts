@@ -16,7 +16,7 @@ const order: OrderRecord = {
   trackingNumber: '9400111899',
   shipmentSnapshot: {
     selectionId: 'selection-1',
-    labelTypeId: 78,
+    labelTypeId: 120,
     weight: 2,
     length: 14,
     width: 10,
@@ -28,7 +28,7 @@ const order: OrderRecord = {
   label: {
     id: 'provider-label-1',
     trackingNumber: '9400111899',
-    labelTypeId: 78,
+    labelTypeId: 120,
     labelTypeName: 'USPS Ground Advantage',
     downloadUrl: '/api/shipping/labels/provider-label-1/download',
     reference: 'ShipDime-selection-1',

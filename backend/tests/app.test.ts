@@ -230,7 +230,7 @@ describe('Click2Ship backend', () => {
         await app.inject({
           method: 'POST',
           url: '/api/shipping/labels',
-          payload: { ...body, weight: 1.99 },
+          payload: { ...body, weight: 0.09 },
         })
       ).statusCode,
     ).toBe(422);
@@ -255,6 +255,27 @@ describe('Click2Ship backend', () => {
     expect(
       (await app.inject({ method: 'POST', url: '/api/shipping/labels', payload: body })).statusCode,
     ).toBe(200);
+    await app.close();
+  });
+
+  it.each([
+    [0, 422],
+    [0.09, 422],
+    [0.1, 200],
+    [0.5, 200],
+    [1, 200],
+    [2.5, 200],
+    [70, 200],
+    [70.01, 422],
+    [71, 422],
+  ])('enforces label purchase weight boundary for %s lb', async (weight, expectedStatus) => {
+    const app = await buildApp(config, new FakeProvider(), new InMemoryLabelRepository());
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/shipping/labels',
+      payload: { ...body, selectionId: crypto.randomUUID(), weight },
+    });
+    expect(response.statusCode).toBe(expectedStatus);
     await app.close();
   });
 

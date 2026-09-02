@@ -15,7 +15,7 @@ export const SERVICE_MAPPINGS = {
     benchmarkClass: 'PRIORITY',
   },
   GROUND_ADVANTAGE: {
-    providerLabelTypeId: 78,
+    providerLabelTypeId: 120,
     carrier: 'USPS',
     referenceRateService: 'GroundAdvantage',
     displayName: 'USPS Ground Advantage',

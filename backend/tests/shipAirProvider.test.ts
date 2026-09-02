@@ -155,6 +155,11 @@ describe('ShipAirShippingProvider', () => {
     expect(payload.to_country).toBe('US');
   });
 
+  it('preserves decimal pounds in the ShipAir payload', () => {
+    expect(createShipAirLabelPayload({ ...validCreateInput, weight: 0.1 }).weight).toBe(0.1);
+    expect(createShipAirLabelPayload({ ...validCreateInput, weight: 2.5 }).weight).toBe(2.5);
+  });
+
   it('serializes top-level dimensions in the actual ShipAir HTTP body', async () => {
     const fetcher = vi.fn(async () =>
       response({

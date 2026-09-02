@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EasyPostRateProvider, normalizeCarrier } from '../src/providers/easyPostRateProvider.js';
+import { EasyPostRateProvider, normalizeCarrier, poundsToOunces } from '../src/providers/easyPostRateProvider.js';
 const input = { sender: { fullName: 'A', address1: '1 Main', city: 'Chicago', state: 'IL', zip: '60601', country: 'US' }, recipient: { fullName: 'B', address1: '2 Main', city: 'New York', state: 'NY', zip: '10001', country: 'US' }, weight: 2, length: 10, width: 8, height: 4 };
 const response = { id: 'shp_test', rates: [
   { id: 'rate_usps', carrier: 'USPS', service: 'GroundAdvantage', rate: '8.82', retail_rate: null, currency: 'USD', delivery_days: 3 },
@@ -19,4 +19,8 @@ describe('EasyPostRateProvider multi-carrier normalization', () => {
     expect(normalizeCarrier('FedExDefault')).toBe('FedEx');
     expect(normalizeCarrier('UPSDAP')).toBe('UPS');
   });
+  it.each([[0.1, 1.6], [0.5, 8], [1, 16], [2.5, 40], [70, 1120]])(
+    'converts %s lb to %s oz without rounding',
+    (pounds, ounces) => expect(poundsToOunces(pounds)).toBe(ounces),
+  );
 });

@@ -57,8 +57,8 @@ describe('service-class benchmark pricing', () => {
   });
 
   it('uses only economy services for Ground Advantage and prices $8.18 at $6.54', async () => {
-    const quote = await serviceFor(commonRates).getQuote({ ...input, labelTypeId: 78 });
-    expect(quote).toMatchObject({ labelTypeId: 78, serviceName: 'USPS Ground Advantage', referencePriceCents: 818, customerPriceCents: 654, savingsCents: 164 });
+    const quote = await serviceFor(commonRates).getQuote({ ...input, labelTypeId: 120 });
+    expect(quote).toMatchObject({ labelTypeId: 120, serviceName: 'USPS Ground Advantage', referencePriceCents: 818, customerPriceCents: 654, savingsCents: 164 });
   });
 
   it('uses only comparable expedited services for Priority and prices $11.50 at $9.20', async () => {
@@ -67,7 +67,7 @@ describe('service-class benchmark pricing', () => {
   });
 
   it('produces different benchmark pools from the same EasyPost response', async () => {
-    const ground = await serviceFor(commonRates).getQuote({ ...input, labelTypeId: 78 });
+    const ground = await serviceFor(commonRates).getQuote({ ...input, labelTypeId: 120 });
     const priority = await serviceFor(commonRates).getQuote(input);
     expect(ground.referencePriceCents).toBe(818);
     expect(priority.referencePriceCents).toBe(1150);

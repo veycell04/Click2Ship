@@ -189,8 +189,65 @@ describe('payment checkout and fulfillment', () => {
     await app.close();
   });
 
+  it('accepts the live ShipAir Ground Advantage label type for pricing', async () => {
+    const { app } = await setup();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/pricing/quote',
+      payload: quotePayload({
+        labelTypeId: 120,
+        weight: 2,
+        length: 8,
+        width: 6,
+        height: 4,
+      }),
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      success: true,
+      quote: {
+        labelTypeId: 120,
+        serviceName: 'USPS Ground Advantage',
+      },
+    });
+    await app.close();
+  });
+
   it.each([
-    ['weight', { weight: 1 }],
+    ['minimum boundary', 87, 0.1],
+    ['Ground Advantage at 8 oz', 120, 0.5],
+    ['Ground Advantage at 1 lb', 120, 1],
+    ['Priority Mail at 8 oz', 87, 0.5],
+    ['decimal pounds', 87, 2.5],
+    ['maximum boundary', 87, 70],
+  ])('accepts supported package weight for %s', async (_scenario, labelTypeId, weight) => {
+    const { app } = await setup();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/pricing/quote',
+      payload: quotePayload({ labelTypeId, weight, length: 8, width: 6, height: 4 }),
+    });
+    expect(response.statusCode).toBe(200);
+    await app.close();
+  });
+
+  it.each([0, 0.09, 70.01, 71])('rejects pricing weight %s outside 0.1-70 lb', async (weight) => {
+    const { app } = await setup();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/pricing/quote',
+      payload: quotePayload({ weight }),
+    });
+    expect(response.statusCode).toBe(422);
+    expect(response.json()).toMatchObject({
+      error: 'VALIDATION_ERROR',
+      fieldErrors: { weight: 'Weight must be between 0.1 and 70 lb.' },
+    });
+    await app.close();
+  });
+
+  it.each([
+    ['weight', { weight: 0.09 }],
     ['length', { length: 0 }],
     ['sender.zip', { sender: { ...shipment.sender, zip: '' } }],
   ])('returns 422 for invalid pricing field %s', async (field, override) => {
@@ -483,7 +540,7 @@ describe('payment checkout and fulfillment', () => {
 
   it('creates the selected Ground Advantage label through ShipAir', async () => {
     const { app, payment, shipping } = await setup();
-    const quote = await createQuote(app, { labelTypeId: 78 });
+    const quote = await createQuote(app, { labelTypeId: 120 });
     await app.inject({ method: 'POST', url: '/api/payments/checkout', payload: { quoteId: quote.quoteId } });
     payment.event.paymentStatus = 'paid';
     await app.inject({
@@ -493,7 +550,7 @@ describe('payment checkout and fulfillment', () => {
       payload: '{}',
     });
     expect(shipping.createCount).toBe(1);
-    expect(shipping.lastInput?.labelTypeId).toBe(78);
+    expect(shipping.lastInput?.labelTypeId).toBe(120);
     await app.close();
   });
 
