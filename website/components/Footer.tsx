@@ -16,6 +16,8 @@ export function Footer() {
           <Link href="/how-to-create-your-own-shipping-label">Shipping label guide</Link>
           <Link href="/stop-copy-pasting-shipping-addresses">Reduce address entry</Link>
           <Link href="/cheap-shipping-labels">Shipping label pricing</Link>
+          <Link href="/cheapest-shipping-labels">Compare label prices</Link>
+          <Link href="/discount-shipping-labels">Discount shipping labels</Link>
           <Link href="/shipping-label-chrome-extension">Chrome extension</Link>
           <Link href="/create-shipping-label-from-any-website">Address selection workflow</Link>
           <Link href="/multi-channel-shipping-labels">Multi-channel shipping</Link>

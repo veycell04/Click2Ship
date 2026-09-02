@@ -24,5 +24,6 @@ export default function Page() {
       { href: '/shipping-label-without-integration', label: 'Shipping without integration', description: 'Compare integration-first and browser-selection approaches.' },
       { href: '/create-shipping-label-from-website', label: 'Website-to-label guide', description: 'Follow the complete address selection workflow.' },
       { href: '/compare', label: 'Comparison hub', description: 'Evaluate ShipDime’s workflow alongside other platform models.' },
+      { href: '/cheap-shipping-labels', label: 'Shipping-label pricing', description: 'Review rates and eligible savings before purchase.' },
     ]} />;
 }

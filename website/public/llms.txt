@@ -22,6 +22,8 @@ Website: https://www.shipdime.com
 - Create from a customer address: https://www.shipdime.com/create-shipping-label-from-customer-address
 - Manual labels versus integrations: https://www.shipdime.com/manual-shipping-label-vs-shipping-integration
 - Shipping label pricing: https://www.shipdime.com/cheap-shipping-labels
+- Comparing the cheapest shipping-label option: https://www.shipdime.com/cheapest-shipping-labels
+- Discount shipping labels: https://www.shipdime.com/discount-shipping-labels
 - Shipping label Chrome extension: https://www.shipdime.com/shipping-label-chrome-extension
 - Address-selection workflow: https://www.shipdime.com/create-shipping-label-from-any-website
 - Multi-channel shipping labels: https://www.shipdime.com/multi-channel-shipping-labels

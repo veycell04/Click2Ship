@@ -24,5 +24,6 @@ export default function Page() {
       { href: '/how-to-create-your-own-shipping-label', label: 'Create your own label', description: 'Review the complete general process from address to print.' },
       { href: '/stop-copy-pasting-shipping-addresses', label: 'Reduce copy and paste', description: 'See how one complete selection replaces repeated transfers.' },
       { href: '/shipping-label-chrome-extension', label: 'ShipDime for Chrome', description: 'Explore the current extension workflow and label recovery.' },
+      { href: '/cheap-shipping-labels', label: 'See shipping-label pricing', description: 'Understand the inputs that affect the price shown before purchase.' },
     ]} />;
 }

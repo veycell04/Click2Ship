@@ -24,5 +24,6 @@ export default function Page() {
       { href: '/create-shipping-label-from-customer-address', label: 'Create from a customer address', description: 'See the recipient and package information needed for a label.' },
       { href: '/chrome-extension-shipping-labels', label: 'Chrome extension workflow', description: 'Understand how address selection starts a ShipDime shipment.' },
       { href: '/compare', label: 'Compare workflows', description: 'Compare ShipDime’s workflow model with shipping platforms.' },
+      { href: '/cheap-shipping-labels', label: 'Review shipping-label pricing', description: 'Learn what affects prices and how eligible ShipDime savings work.' },
     ]} />;
 }

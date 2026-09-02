@@ -25,12 +25,16 @@ export default function Home() {
           <div>
             <p className="eyebrow">ShipDime · Select. Right-click. Ship.</p>
             <h1>Create shipping labels from selectable addresses in Chrome.</h1>
-            <p className="hero-copy">If a shipping address is available as selectable text in the browser, highlight it, right-click, review your shipment, and create your U.S. domestic shipping label with ShipDime.</p>
-            <div className="actions"><ChromeCta /><a className="button secondary" href="#how-it-works">See how it works</a></div>
-            <p className="microcopy">Review the price and shipment details before you pay.</p>
+            <p className="hero-copy">If a shipping address is available as selectable text in the browser, highlight it, right-click, review your shipment, and create your U.S. domestic shipping label with ShipDime. Create shipping labels faster and save up to 20% on eligible rates.</p>
+            <div className="actions"><ChromeCta /><a className="button secondary" href="/cheap-shipping-labels">Check Your Shipping Price</a></div>
+            <p className="microcopy"><a href="#how-it-works">See how it works</a>. Actual rates and savings vary by shipment.</p>
           </div>
           <div className="hero-mark" aria-hidden="true"><span className="address-line wide" /><span className="address-line" /><span className="address-line short" /><div className="cursor-menu"><b>Create shipping label</b><span>with ShipDime</span></div></div>
         </div>
+      </section>
+
+      <section className="section commercial-callout">
+        <div className="shell commercial-callout-inner"><div><p className="eyebrow">Shipping label pricing</p><h2>Looking for cheaper shipping labels?</h2><p>Shipping costs add up. ShipDime lets you review your shipping price before purchasing and offers up to 20% savings on eligible rates.</p><small>Actual rates and savings vary by shipment. No provider is guaranteed to be cheapest for every label.</small></div><a className="button primary" href="/cheap-shipping-labels">Check Your Shipping Price</a></div>
       </section>
 
       <section className="section home-about">

@@ -20,6 +20,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/create-shipping-label-from-customer-address',
     '/manual-shipping-label-vs-shipping-integration',
     '/cheap-shipping-labels',
+    '/cheapest-shipping-labels',
+    '/discount-shipping-labels',
     '/shipping-label-chrome-extension',
     '/create-shipping-label-from-any-website',
     '/multi-channel-shipping-labels',
@@ -28,7 +30,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/support',
   ].map((path) => ({
     url: `https://www.shipdime.com${path}`,
-    lastModified: new Date('2026-08-26'),
+    lastModified: new Date('2026-09-02'),
     changeFrequency: path ? 'monthly' : 'weekly',
     priority: path.startsWith('/privacy') || path.startsWith('/terms') || path.startsWith('/support') ? 0.7 : path ? 0.9 : 1,
   }));
