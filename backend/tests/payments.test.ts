@@ -88,6 +88,7 @@ class FakePayment implements PaymentProvider {
       cancelUrl: input.cancelUrl,
       status: 'open',
       paymentStatus: 'unpaid',
+      metadata: { orderId: input.orderId, quoteId: input.quoteId, selectionId: shipment.selectionId },
     };
     return { id: 'cs_test_1', url: 'https://checkout.stripe.com/test' };
   }
@@ -498,6 +499,36 @@ describe('payment checkout and fulfillment', () => {
       serviceName: 'Priority Mail',
       trackingNumber: '9400',
     });
+    await app.close();
+  });
+
+  it('renders purchase conversion data only for a backend-confirmed created label', async () => {
+    const { app, payment } = await setup();
+    const quote = await createQuote(app);
+    await app.inject({
+      method: 'POST',
+      url: '/api/payments/checkout',
+      payload: { quoteId: quote.quoteId },
+    });
+    payment.event.paymentStatus = 'paid';
+    if (!payment.session) throw new Error('Expected Checkout Session.');
+    payment.session.paymentStatus = 'paid';
+    await app.inject({
+      method: 'POST',
+      url: '/api/webhooks/stripe',
+      headers: { 'stripe-signature': 'valid', 'content-type': 'application/json' },
+      payload: '{}',
+    });
+
+    const success = await app.inject({
+      method: 'GET',
+      url: `/payment/success?session_id=${payment.session.id}`,
+    });
+    expect(success.body).toContain('AW-18426517051/jijcCK7Hhe0cELusudJE');
+    expect(success.body).toContain('amountCents":792');
+    expect(success.body).toContain("transaction_id:current.orderId");
+    expect(success.body).toContain("current.status!=='label_created'");
+    expect(success.body).toContain("localStorage.getItem(key)");
     await app.close();
   });
 

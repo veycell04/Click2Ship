@@ -106,9 +106,47 @@ export async function buildApp(
     }
   });
   app.get('/', async () => ({ name: 'Click2Ship Backend', status: 'running' }));
-  app.get('/payment/success', async (_request, reply) =>
-    reply.type('text/html').send('<main><h1>ShipDime</h1><h2>Payment successful</h2><p>Your payment was received.</p><p>We\'re creating your shipping label.</p><p>You can return to the ShipDime extension.</p></main>'),
-  );
+  app.get<{ Querystring: { session_id?: string } }>('/payment/success', async (request, reply) => {
+    let confirmedOrder: { orderId: string; amountCents: number; currency: string; status: string } | null = null;
+    const sessionId = typeof request.query.session_id === 'string' ? request.query.session_id : '';
+    if (sessionId && paymentProvider && orderRepository) {
+      const session = await paymentProvider.getCheckoutSession(sessionId);
+      const orderId = session?.metadata?.orderId;
+      if (session?.paymentStatus === 'paid' && orderId) {
+        const order = await orderRepository.findById(orderId);
+        if (order?.stripeCheckoutSessionId === sessionId) {
+          confirmedOrder = {
+            orderId: order.id,
+            amountCents: order.amountCents,
+            currency: order.currency,
+            status: order.status,
+          };
+        }
+      }
+    }
+    const conversionState = JSON.stringify(confirmedOrder).replace(/</g, '\\u003c');
+    return reply.type('text/html').send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Payment successful | ShipDime</title></head><body><main><h1>ShipDime</h1><h2>Payment successful</h2><p>Your payment was received.</p><p>We're creating your shipping label.</p><p>You can return to the ShipDime extension.</p></main><script async src="https://www.googletagmanager.com/gtag/js?id=AW-18426517051"></script><script>
+window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','AW-18426517051');
+const purchase=${conversionState};
+async function trackPurchase(order){
+  if(!order)return;
+  let current=order;
+  for(let attempt=0;attempt<30&&current.status!=='label_created';attempt++){
+    await new Promise(resolve=>setTimeout(resolve,2000));
+    const response=await fetch('/api/orders/'+encodeURIComponent(current.orderId)+'/status');
+    if(!response.ok)continue;
+    const body=await response.json();
+    if(body&&body.order)current={...current,status:body.order.status,amountCents:body.order.amountCents,currency:body.order.currency};
+  }
+  if(current.status!=='label_created'||!Number.isInteger(current.amountCents)||current.amountCents<=0)return;
+  const key='shipdime-google-ads-purchase:'+current.orderId;
+  if(localStorage.getItem(key))return;
+  localStorage.setItem(key,'sent');
+  gtag('event','conversion',{send_to:'AW-18426517051/jijcCK7Hhe0cELusudJE',value:current.amountCents/100,currency:'USD',transaction_id:current.orderId});
+}
+void trackPurchase(purchase);
+</script></body></html>`);
+  });
   app.get('/payment/cancel', async (_request, reply) =>
     reply.type('text/html').send('<main><h1>ShipDime</h1><h2>Payment canceled</h2><p>No payment was completed.</p><p>You can return to the ShipDime extension and try again.</p></main>'),
   );

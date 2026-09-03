@@ -39,6 +39,7 @@ export interface CheckoutSessionState extends CheckoutSessionResult {
   cancelUrl: string;
   status: string;
   paymentStatus: string;
+  metadata?: Record<string, string>;
 }
 
 export interface PaidCheckoutEvent {

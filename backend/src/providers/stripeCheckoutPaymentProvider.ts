@@ -58,6 +58,11 @@ export class StripeCheckoutPaymentProvider implements PaymentProvider {
         cancelUrl: session.cancel_url || '',
         status: session.status || '',
         paymentStatus: session.payment_status || '',
+        metadata: Object.fromEntries(
+          Object.entries(session.metadata ?? {}).filter(
+            (entry): entry is [string, string] => typeof entry[1] === 'string',
+          ),
+        ),
       };
     } catch {
       return null;
