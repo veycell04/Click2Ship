@@ -1,5 +1,6 @@
 import type { Address, PackageDetails } from '../domain/models';
 import { validateUsZip } from '../domain/usZip';
+import { MINIMUM_PACKAGE_WEIGHT_MESSAGE, validatePackageWeight } from '../domain/packageWeight';
 
 export interface ShipmentDraft {
   selectedLabelTypeId: string;
@@ -38,7 +39,7 @@ export function getPricingRequirements(shipment: ShipmentDraft): PricingRequirem
     { key: 'service.labelType', label: 'Select a label type', section: 'service', valid: /^\d+$/.test(shipment.selectedLabelTypeId) && Number(shipment.selectedLabelTypeId) > 0, message: 'Required to calculate price' },
     ...addressRequirements('sender', shipment.sender),
     ...addressRequirements('recipient', shipment.recipient),
-    { key: 'package.weight', label: 'Enter package weight', section: 'package', valid: Number.isFinite(Number(shipment.package.weight)) && Number(shipment.package.weight) >= 2, message: 'Minimum 2 lb' },
+    { key: 'package.weight', label: 'Enter package weight', section: 'package', valid: validatePackageWeight(shipment.package.weight).valid, message: MINIMUM_PACKAGE_WEIGHT_MESSAGE },
     { key: 'package.length', label: 'Enter package length', section: 'package', valid: positive(shipment.package.length), message: 'Must be greater than 0' },
     { key: 'package.width', label: 'Enter package width', section: 'package', valid: positive(shipment.package.width), message: 'Must be greater than 0' },
     { key: 'package.height', label: 'Enter package height', section: 'package', valid: positive(shipment.package.height), message: 'Must be greater than 0' },

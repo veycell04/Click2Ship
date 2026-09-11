@@ -20,12 +20,12 @@ describe('pricing readiness requirements', () => {
     expect(getPricingRequirements(draft).find((item) => item.key === 'service.labelType')?.valid).toBe(false);
   });
 
-  it('shows minimum weight and recipient ZIP guidance', () => {
+  it('shows weight-range and recipient ZIP guidance', () => {
     const draft = validDraft();
-    draft.package.weight = '1.99';
+    draft.package.weight = '0.09';
     draft.recipient.zipCode = '';
     const missing = getPricingRequirements(draft).filter((item) => !item.valid);
-    expect(missing.find((item) => item.key === 'package.weight')?.message).toBe('Minimum 2 lb');
+    expect(missing.find((item) => item.key === 'package.weight')?.message).toBe('Weight must be between 0.1 and 70 lb.');
     expect(missing.map((item) => item.key)).toContain('recipient.zipCode');
   });
 

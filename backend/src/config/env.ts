@@ -12,6 +12,10 @@ export interface BackendConfig {
   easyPostApiKey: string;
   shipDimeDiscountPercent: number;
   databaseUrl: string;
+  bookShippingEnabled: boolean;
+  bookTargetPriceCents: number;
+  bookMinMarginCents: number;
+  shipAirMediaMailLabelTypeId: number | null;
 }
 
 export const normalizePublicAppUrl = (value: string): string => value.trim().replace(/\/+$/, '');
@@ -43,6 +47,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
       env.SHIPDIME_DISCOUNT_PERCENT ?? env.CLICK2SHIP_DISCOUNT_PERCENT ?? 20,
     ),
     databaseUrl: env.DATABASE_URL || '',
+    bookShippingEnabled: (env.BOOK_SHIPPING_ENABLED ?? 'true').toLowerCase() === 'true',
+    bookTargetPriceCents: Number(env.BOOK_TARGET_PRICE_CENTS ?? 399),
+    bookMinMarginCents: Number(env.BOOK_MIN_MARGIN_CENTS ?? 25),
+    shipAirMediaMailLabelTypeId: env.SHIPAIR_MEDIA_MAIL_LABEL_TYPE_ID
+      ? Number(env.SHIPAIR_MEDIA_MAIL_LABEL_TYPE_ID)
+      : null,
   };
 }
 
@@ -80,6 +90,14 @@ export function assertBackendConfig(config: BackendConfig): void {
   }
   if (!config.easyPostApiKey)
     throw new Error('EASYPOST_API_KEY is missing. Add it to backend/.env.');
+  if (!Number.isInteger(config.bookTargetPriceCents) || config.bookTargetPriceCents <= 0)
+    throw new Error('BOOK_TARGET_PRICE_CENTS must be a positive integer.');
+  if (!Number.isInteger(config.bookMinMarginCents) || config.bookMinMarginCents < 0)
+    throw new Error('BOOK_MIN_MARGIN_CENTS must be a non-negative integer.');
+  if (
+    config.shipAirMediaMailLabelTypeId !== null &&
+    (!Number.isInteger(config.shipAirMediaMailLabelTypeId) || config.shipAirMediaMailLabelTypeId <= 0)
+  ) throw new Error('SHIPAIR_MEDIA_MAIL_LABEL_TYPE_ID must be a positive integer when configured.');
   if (
     config.nodeEnv === 'production' &&
     (!config.publicBaseUrl.startsWith('https://') ||

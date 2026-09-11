@@ -29,6 +29,9 @@ const mappings = new Map<number, ShippingServiceMapping>(
 
 export const getShippingServiceMapping = (labelTypeId: number) => mappings.get(labelTypeId) ?? null;
 
+export const getShippingServiceMappingByReferenceService = (service: string) =>
+  [...mappings.values()].find((mapping) => mapping.referenceRateService === service) ?? null;
+
 export const registerConfirmedServiceMapping = (mapping: ShippingServiceMapping): void => {
   mappings.set(mapping.providerLabelTypeId, mapping);
 };

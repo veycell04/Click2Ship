@@ -63,6 +63,7 @@ import {
 } from './pricingRequirements';
 
 const presets: Record<PackageDetails['preset'], Omit<PackageDetails, 'preset'>> = {
+  'book-poly-mailer': { weight: '2', length: '12', width: '9', height: '1' },
   'poly-mailer': { weight: '2', length: '12', width: '9', height: '1' },
   'small-box': { weight: '2', length: '8', width: '6', height: '4' },
   'medium-box': { weight: '2', length: '14', width: '10', height: '6' },
@@ -71,6 +72,7 @@ const presets: Record<PackageDetails['preset'], Omit<PackageDetails, 'preset'>> 
 };
 
 const packageLabels: Record<PackageDetails['preset'], string> = {
+  'book-poly-mailer': 'Book / Poly Mailer',
   'poly-mailer': 'Poly mailer',
   'small-box': 'Small box',
   'medium-box': 'Medium box',
@@ -1285,27 +1287,35 @@ export function App() {
               ))}
             </select>
           </label>
-          <label
-            className={`wide${missingPricingByKey.has('service.labelType') && touchedPricingFields.has('service.labelType') ? ' field-missing' : ''}`}
-          >
-            <span>Label type</span>
-            <LabelTypeSelect
-              id="label-type"
-              labelTypes={labelTypes}
-              selectedLabelTypeId={selectedLabelTypeId}
-              onChange={(value) => {
-                clearBackendPricingFieldError('service.labelType');
-                setSelectedLabelTypeId(value);
-                setTouchedPricingFields((current) => new Set(current).add('service.labelType'));
-              }}
-              invalid={missingPricingByKey.has('service.labelType') && touchedPricingFields.has('service.labelType')}
-            />
-            {missingPricingByKey.has('service.labelType') && touchedPricingFields.has('service.labelType') && (
-              <small id="service-labelType-pricing-error" className="field-error">
-                <span aria-hidden="true">! </span>{missingPricingByKey.get('service.labelType')?.message}
-              </small>
-            )}
-          </label>
+          {parcel.preset !== 'book-poly-mailer' && (
+            <label
+              className={`wide${missingPricingByKey.has('service.labelType') && touchedPricingFields.has('service.labelType') ? ' field-missing' : ''}`}
+            >
+              <span>Label type</span>
+              <LabelTypeSelect
+                id="label-type"
+                labelTypes={labelTypes}
+                selectedLabelTypeId={selectedLabelTypeId}
+                onChange={(value) => {
+                  clearBackendPricingFieldError('service.labelType');
+                  setSelectedLabelTypeId(value);
+                  setTouchedPricingFields((current) => new Set(current).add('service.labelType'));
+                }}
+                invalid={missingPricingByKey.has('service.labelType') && touchedPricingFields.has('service.labelType')}
+              />
+              {missingPricingByKey.has('service.labelType') && touchedPricingFields.has('service.labelType') && (
+                <small id="service-labelType-pricing-error" className="field-error">
+                  <span aria-hidden="true">! </span>{missingPricingByKey.get('service.labelType')?.message}
+                </small>
+              )}
+            </label>
+          )}
+          {parcel.preset === 'book-poly-mailer' && (
+            <div className="book-shipping-notice" role="status">
+              <strong>Optimized for eligible book shipments</strong>
+              <span>ShipDime selects the lowest eligible supported USPS service after you enter the package weight.</span>
+            </div>
+          )}
           <div className="dimensions">
             {(['weight', 'length', 'width', 'height'] as const).map((key) => (
               <label
@@ -1319,7 +1329,8 @@ export function App() {
                 <input
                   id={`package-${key}`}
                   type="number"
-                  min={key === 'weight' ? 2 : 0.1}
+                  min={0.1}
+                  max={key === 'weight' ? 70 : undefined}
                   step={key === 'weight' ? 0.01 : 0.1}
                   value={parcel[key]}
                   required
@@ -1328,7 +1339,7 @@ export function App() {
                     setParcel({
                       ...parcel,
                       [key]: event.target.value,
-                      ...(key !== 'weight' ? { preset: 'custom' as const } : {}),
+                      ...(key !== 'weight' && parcel.preset !== 'book-poly-mailer' ? { preset: 'custom' as const } : {}),
                     });
                   }}
                   onBlur={() => setTouchedPricingFields((current) => new Set(current).add(`package.${key}`))}
@@ -1361,6 +1372,14 @@ export function App() {
           missingRequirements={groupedMissingPricingRequirements}
           onRequirementClick={focusPricingRequirement}
         />
+        {parcel.preset === 'book-poly-mailer' && currentPrice && (
+          <p className="book-rate-note">
+            Selected service: <strong>{currentPrice.serviceName}</strong>.{' '}
+            {currentPrice.isMediaMail
+              ? 'Media Mail eligibility depends on package contents.'
+              : currentPrice.eligibilityNotice}
+          </p>
+        )}
 
         <section className="card confirmations">
           <label>

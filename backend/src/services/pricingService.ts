@@ -2,6 +2,11 @@ import type { CreateLabelInput } from '../types/shipping.js';
 import type { RateProvider, ReferenceRate, SupportedCarrier } from './rateProvider.js';
 import { getShippingServiceMapping } from './shippingServiceMapping.js';
 import { eligibleBenchmarkRates } from './benchmarkEligibility.js';
+import {
+  calculateBookCustomerPrice,
+  selectBookRate,
+  type BookPricingConfig,
+} from './bookPricing.js';
 
 export type PricingQuoteInput = Omit<CreateLabelInput, 'reference'>;
 export interface ShippingRateOption {
@@ -17,6 +22,7 @@ export interface PricingQuote {
   savingsCents: number; savingsDisplayAmount: string; savingsPercent: number;
   currency: 'usd'; pricingMode: 'live'; expiresAt: string;
   referencePriceCents: number; referenceDisplayAmount: string;
+  shipmentCategory: 'standard' | 'book'; isMediaMail: boolean; eligibilityNotice: string;
 }
 export interface StoredPricingQuote extends ShippingRateOption {
   input: PricingQuoteInput; shipmentSnapshot: CreateLabelInput;
@@ -47,7 +53,17 @@ export class RetailRateUnavailableError extends Error {}
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 export class LiveEasyPostPricingService implements PricingService {
-  constructor(private readonly rateProvider: RateProvider, private readonly repository: PricingQuoteRepository, private readonly discountPercent: number) {
+  constructor(
+    private readonly rateProvider: RateProvider,
+    private readonly repository: PricingQuoteRepository,
+    private readonly discountPercent: number,
+    private readonly bookConfig: BookPricingConfig = {
+      enabled: true,
+      targetPriceCents: 399,
+      minimumMarginCents: 25,
+      mediaMailLabelTypeId: null,
+    },
+  ) {
     if (!Number.isFinite(discountPercent) || discountPercent < 0 || discountPercent >= 100) throw new Error('SHIPDIME_DISCOUNT_PERCENT must be between 0 and 99.');
   }
   private option(rate: ReferenceRate): ShippingRateOption {
@@ -62,18 +78,59 @@ export class LiveEasyPostPricingService implements PricingService {
   }
   async getQuote(input: PricingQuoteInput): Promise<PricingQuote> {
     console.log('PRICING_STAGE_START');
+    const shipmentCategory = input.shipmentCategory ?? 'standard';
     const selectedService = getShippingServiceMapping(input.labelTypeId);
-    if (!selectedService) throw new UnsupportedPricingServiceError(`Unsupported label type: ${input.labelTypeId}`);
+    if (shipmentCategory === 'standard' && !selectedService)
+      throw new UnsupportedPricingServiceError(`Unsupported label type: ${input.labelTypeId}`);
+    if (shipmentCategory === 'book' && !this.bookConfig.enabled)
+      throw new PricingRateUnavailableError('Book shipping is currently unavailable.', []);
     const availableRates = await this.rateProvider.getRates(input);
-    const rates = eligibleBenchmarkRates(availableRates, selectedService.benchmarkClass)
-      .sort((a, b) => a.rateCents - b.rateCents);
-    if (!rates.length) throw new PricingRateUnavailableError(
-      `No eligible ${selectedService.displayName} benchmark rates are available for this shipment.`,
-      availableRates.map((rate) => `${rate.carrier} ${rate.serviceCode}`),
-    );
+    let selectedRate: ReferenceRate;
+    let resolvedLabelTypeId: number;
+    let resolvedServiceName: string;
+    let isMediaMail = false;
+    let rates: ReferenceRate[];
+    if (shipmentCategory === 'book') {
+      const bookSelection = selectBookRate(availableRates, this.bookConfig.mediaMailLabelTypeId);
+      if (!bookSelection) throw new PricingRateUnavailableError(
+        'No valid USPS service is available for this book shipment.',
+        availableRates.filter((rate) => rate.carrier === 'USPS').map((rate) => rate.serviceCode),
+      );
+      selectedRate = bookSelection.rate;
+      resolvedLabelTypeId = bookSelection.labelTypeId;
+      resolvedServiceName = bookSelection.isMediaMail
+        ? 'USPS Media Mail'
+        : getShippingServiceMapping(bookSelection.labelTypeId)?.displayName ?? bookSelection.rate.serviceName;
+      isMediaMail = bookSelection.isMediaMail;
+      rates = [bookSelection.rate];
+    } else {
+      const standardService = selectedService!;
+      rates = eligibleBenchmarkRates(availableRates, standardService.benchmarkClass)
+        .sort((a, b) => a.rateCents - b.rateCents);
+      if (!rates.length) throw new PricingRateUnavailableError(
+        `No eligible ${standardService.displayName} benchmark rates are available for this shipment.`,
+        availableRates.map((rate) => `${rate.carrier} ${rate.serviceCode}`),
+      );
+      selectedRate = rates[0]!;
+      resolvedLabelTypeId = input.labelTypeId;
+      resolvedServiceName = standardService.displayName;
+    }
     const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
-    const cheapestRate = rates[0]!;
-    const benchmark = this.option(cheapestRate);
+    const benchmark = this.option(selectedRate);
+    if (shipmentCategory === 'book') {
+      const customerPriceCents = calculateBookCustomerPrice(
+        selectedRate.rateCents,
+        benchmark.customerPriceCents,
+        this.bookConfig,
+      );
+      benchmark.customerPriceCents = customerPriceCents;
+      benchmark.customerDisplayAmount = money(customerPriceCents);
+      benchmark.savingsCents = Math.max(0, selectedRate.rateCents - customerPriceCents);
+      benchmark.savingsDisplayAmount = money(benchmark.savingsCents);
+      benchmark.savingsPercent = selectedRate.rateCents > 0
+        ? Math.round((benchmark.savingsCents / selectedRate.rateCents) * 100)
+        : 0;
+    }
     console.log('QUOTE_CALCULATION_COMPLETE', {
       benchmarkRateCents: benchmark.benchmarkPriceCents,
       discountPercent: benchmark.savingsPercent,
@@ -82,29 +139,34 @@ export class LiveEasyPostPricingService implements PricingService {
     });
     const quoteId = crypto.randomUUID();
     try {
-      await this.repository.save({ ...benchmark, quoteId, serviceName: selectedService.displayName,
-        input: structuredClone(input), shipmentSnapshot: { ...structuredClone(input), reference: `ShipDime-${input.selectionId}` },
-        providerCarrier: cheapestRate.providerCarrier, carrierRateCents: benchmark.benchmarkPriceCents,
+      const normalizedInput = { ...structuredClone(input), labelTypeId: resolvedLabelTypeId, shipmentCategory };
+      await this.repository.save({ ...benchmark, quoteId, serviceName: resolvedServiceName,
+        input: normalizedInput, shipmentSnapshot: { ...normalizedInput, reference: `ShipDime-${input.selectionId}` },
+        providerCarrier: selectedRate.providerCarrier, carrierRateCents: benchmark.benchmarkPriceCents,
         grossSpreadCents: benchmark.customerPriceCents - benchmark.benchmarkPriceCents,
         currency: 'usd', pricingMode: 'live', expiresAt, fulfillmentProvider: 'shipair',
-        selectedRateSnapshot: structuredClone(benchmark), labelTypeId: input.labelTypeId,
+        selectedRateSnapshot: structuredClone(benchmark), labelTypeId: resolvedLabelTypeId,
         easyPostShipmentId: benchmark.shipmentId, easyPostRateId: benchmark.rateId,
         referencePriceCents: benchmark.benchmarkPriceCents, referenceDisplayAmount: benchmark.benchmarkDisplayAmount });
     } catch (error) { throw new QuotePersistenceError(error); }
     console.log('PRICING_BENCHMARK_RESULT', {
-      selectedLabelTypeId: input.labelTypeId,
-      benchmarkClass: selectedService.benchmarkClass,
+      selectedLabelTypeId: resolvedLabelTypeId,
+      benchmarkClass: shipmentCategory === 'book' ? 'BOOK' : selectedService!.benchmarkClass,
       eligibleRates: rates.map((rate) => ({ carrier: rate.carrier, service: rate.serviceCode,
         rateCents: rate.rateCents, deliveryDays: rate.deliveryDays })),
-      selectedBenchmark: { carrier: cheapestRate.carrier, service: cheapestRate.serviceCode,
-        rateCents: cheapestRate.rateCents },
+      selectedBenchmark: { carrier: selectedRate.carrier, service: selectedRate.serviceCode,
+        rateCents: selectedRate.rateCents },
       customerPriceCents: benchmark.customerPriceCents,
     });
-    return { quoteId, labelTypeId: input.labelTypeId, serviceName: selectedService.displayName,
+    return { quoteId, labelTypeId: resolvedLabelTypeId, serviceName: resolvedServiceName,
       customerPriceCents: benchmark.customerPriceCents, customerDisplayAmount: benchmark.customerDisplayAmount,
       savingsCents: benchmark.savingsCents, savingsDisplayAmount: benchmark.savingsDisplayAmount,
       savingsPercent: benchmark.savingsPercent, currency: 'usd', pricingMode: 'live', expiresAt,
-      referencePriceCents: benchmark.benchmarkPriceCents, referenceDisplayAmount: benchmark.benchmarkDisplayAmount };
+      referencePriceCents: benchmark.benchmarkPriceCents, referenceDisplayAmount: benchmark.benchmarkDisplayAmount,
+      shipmentCategory, isMediaMail,
+      eligibilityNotice: shipmentCategory === 'book'
+        ? 'Media Mail is intended for eligible media contents such as books.'
+        : '' };
   }
   getStoredQuote(id: string) { return this.repository.findById(id); }
 }

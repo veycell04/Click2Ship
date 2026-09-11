@@ -50,7 +50,16 @@ export async function buildConfiguredApp() {
     new EasyPostRateProvider(config.easyPostApiKey),
     quoteRepository,
     config.shipDimeDiscountPercent,
+    {
+      enabled: config.bookShippingEnabled,
+      targetPriceCents: config.bookTargetPriceCents,
+      minimumMarginCents: config.bookMinMarginCents,
+      mediaMailLabelTypeId: config.shipAirMediaMailLabelTypeId,
+    },
   );
+  if (config.bookShippingEnabled && !config.shipAirMediaMailLabelTypeId) {
+    console.warn('BOOK_MEDIA_MAIL_UNMAPPED: ShipAir currently exposes no verified Media Mail label type; book quotes will use the cheapest supported USPS fallback.');
+  }
 
   return buildApp(
     config,

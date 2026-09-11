@@ -20,6 +20,7 @@ export interface CreateLabelRequest {
   sender: BackendShippingAddress;
   recipient: BackendShippingAddress;
   reference: string;
+  shipmentCategory?: 'standard' | 'book';
 }
 
 export interface PricingQuoteRequest {
@@ -31,6 +32,7 @@ export interface PricingQuoteRequest {
   height: number;
   sender: BackendShippingAddress;
   recipient: BackendShippingAddress;
+  shipmentCategory?: 'standard' | 'book';
 }
 
 export type BackendRequestMessage =

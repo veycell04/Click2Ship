@@ -114,7 +114,48 @@ describe('Click2ShipBackendClient messaging', () => {
         height: 6,
         sender: expect.objectContaining({ zip: '60101' }),
         recipient: expect.objectContaining({ zip: '10453' }),
+        shipmentCategory: 'standard',
       }),
+    });
+  });
+
+  it('marks the Book / Poly Mailer preset as a book pricing request', async () => {
+    const send = vi.fn(async () => ({
+      success: true,
+      status: 200,
+      data: {
+        success: true,
+        quote: {
+          quoteId: 'book-quote',
+          serviceName: 'USPS Ground Advantage',
+          customerPriceCents: 399,
+          customerDisplayAmount: '$3.99',
+          savingsCents: 25,
+          savingsDisplayAmount: '$0.25',
+          savingsPercent: 6,
+          currency: 'usd',
+          pricingMode: 'live',
+          expiresAt: '2026-08-06T12:10:00.000Z',
+          referencePriceCents: 374,
+          referenceDisplayAmount: '$3.74',
+          labelTypeId: 120,
+          shipmentCategory: 'book',
+          isMediaMail: false,
+          eligibilityNotice: 'Media Mail is intended for eligible media contents such as books.',
+        },
+      },
+    }));
+    const client = new Click2ShipBackendClient(messenger(send), 'http://test');
+    await client.getPricingQuote(
+      '123e4567-e89b-42d3-a456-426614174000',
+      '87',
+      { ...emptyAddress(), country: 'US', state: 'IL', zipCode: '60101' },
+      { ...emptyAddress(), country: 'US', state: 'NY', zipCode: '10453' },
+      { ...parcel, preset: 'book-poly-mailer' },
+    );
+    expect(send).toHaveBeenCalledWith({
+      type: 'GET_PRICING_QUOTE',
+      payload: expect.objectContaining({ shipmentCategory: 'book' }),
     });
   });
 

@@ -78,6 +78,9 @@ export function parseCreateLabelRequest(value: unknown): CreateLabelInput {
   const labelTypeId = Number(input.labelTypeId);
   if (!Number.isInteger(labelTypeId) || labelTypeId <= 0)
     throw new RequestValidationError('labelTypeId', 'Must be a positive integer.');
+  const shipmentCategory = input.shipmentCategory ?? 'standard';
+  if (shipmentCategory !== 'standard' && shipmentCategory !== 'book')
+    throw new RequestValidationError('shipmentCategory', 'Must be standard or book.');
   return {
     selectionId,
     labelTypeId,
@@ -88,5 +91,6 @@ export function parseCreateLabelRequest(value: unknown): CreateLabelInput {
     sender: address(input.sender, 'sender'),
     recipient: address(input.recipient, 'recipient'),
     reference: text(input.reference ?? '', 'reference', false, 100),
+    shipmentCategory,
   };
 }

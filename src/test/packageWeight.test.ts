@@ -14,24 +14,24 @@ const parcel = (weight: string): PackageDetails => ({
   preset: 'poly-mailer',
 });
 
-describe('minimum package weight', () => {
-  it.each(['1', '1.99'])('rejects %s lb', (weight) => {
+describe('package weight range', () => {
+  it.each(['0', '0.09', '70.01', '71'])('rejects %s lb', (weight) => {
     expect(validatePackageWeight(weight)).toMatchObject({
       valid: false,
-      message: 'Minimum package weight is 2 lb.',
+      message: 'Weight must be between 0.1 and 70 lb.',
     });
   });
 
-  it.each(['2', '2.5', '3.25'])('accepts %s lb', (weight) => {
+  it.each(['0.1', '0.5', '1', '1.25', '2.5', '70'])('accepts %s lb', (weight) => {
     expect(validatePackageWeight(weight)).toMatchObject({ valid: true, weight: Number(weight) });
   });
 
-  it('rejects a manually modified API request below 2 lb at the backend boundary', () => {
-    expect(() => validateShipmentRequestForBackend(parcel('1.99'))).toThrow(
+  it('rejects a manually modified API request outside the weight range', () => {
+    expect(() => validateShipmentRequestForBackend(parcel('0.09'))).toThrow(
       InvalidShipmentRequestError,
     );
-    expect(() => validateShipmentRequestForBackend(parcel('1.99'))).toThrow(
-      'Minimum package weight is 2 lb.',
+    expect(() => validateShipmentRequestForBackend(parcel('0.09'))).toThrow(
+      'Weight must be between 0.1 and 70 lb.',
     );
   });
 });

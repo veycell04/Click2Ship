@@ -653,6 +653,26 @@ button {
   background: transparent;
   color: #53647a;
 }
+.book-shipping-notice,
+.book-rate-note {
+  border: 1px solid #cfe2ff;
+  border-radius: 10px;
+  background: #f4f8ff;
+  color: #334a68;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.book-shipping-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 14px;
+  padding: 11px 12px;
+}
+.book-rate-note {
+  margin: -6px 16px 16px;
+  padding: 10px 12px;
+}
 @media (max-width: 350px) {
   .field-grid {
     grid-template-columns: 1fr;

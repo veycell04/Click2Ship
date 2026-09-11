@@ -48,6 +48,9 @@ export interface BackendPriceQuote {
   currency: string;
   pricingMode: string;
   expiresAt: string;
+  shipmentCategory: 'standard' | 'book';
+  isMediaMail: boolean;
+  eligibilityNotice: string;
 }
 export type BackendOrderStatus =
   | 'draft'
@@ -302,6 +305,7 @@ export class Click2ShipBackendClient {
             height: Number(parcel.height),
             sender: shipmentSnapshot.sender,
             recipient: shipmentSnapshot.recipient,
+            shipmentCategory: shipmentSnapshot.shipmentCategory,
           },
         },
         path,
@@ -415,6 +419,7 @@ export class Click2ShipBackendClient {
       sender: shippingAddress(sender),
       recipient: shippingAddress(recipient),
       reference: `ShipDime-${selectionId}`,
+      shipmentCategory: parcel.preset === 'book-poly-mailer' ? 'book' : 'standard',
     };
   }
 
@@ -467,7 +472,8 @@ export class Click2ShipBackendClient {
     }
     if (
       !Number.isFinite(weight) ||
-      weight < 2 ||
+      weight < 0.1 ||
+      weight > 70 ||
       !Number.isFinite(length) ||
       length <= 0 ||
       !Number.isFinite(width) ||
@@ -492,6 +498,7 @@ export class Click2ShipBackendClient {
       sender: shippingAddress(sender),
       recipient: shippingAddress(recipient),
       reference: `ShipDime-${selectionId}`,
+      shipmentCategory: parcel.preset === 'book-poly-mailer' ? 'book' : 'standard',
     };
     if (import.meta.env.DEV || import.meta.env.VITE_APP_ENV === 'development') {
       console.log('Outgoing ShipDime create-label payload', {

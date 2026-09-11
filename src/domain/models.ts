@@ -25,7 +25,7 @@ export interface AddressExtractionResult {
   originalText: string;
 }
 
-export type PackagePreset = 'poly-mailer' | 'small-box' | 'medium-box' | 'large-box' | 'custom';
+export type PackagePreset = 'book-poly-mailer' | 'poly-mailer' | 'small-box' | 'medium-box' | 'large-box' | 'custom';
 
 export interface PackageDetails {
   weight: string;
