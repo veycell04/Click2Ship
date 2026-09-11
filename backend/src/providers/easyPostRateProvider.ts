@@ -60,6 +60,19 @@ export class EasyPostRateProvider implements RateProvider {
         parcel: { weight: poundsToOunces(input.weight), length: input.length, width: input.width, height: input.height },
       });
       const rawRates = shipment.rates ?? [];
+      if (input.shipmentCategory === 'book') {
+        console.log('BOOK_PROVIDER_RATES', {
+          provider: 'easypost', providerShipmentId: shipment.id,
+          requestedWeightLb: input.weight, convertedWeightOz: poundsToOunces(input.weight),
+          shipmentCategory: input.shipmentCategory,
+          rates: rawRates.map((rate) => ({
+            providerRateId: rate.id, providerCarrier: rate.carrier, serviceCode: rate.service,
+            rawRate: rate.rate, referenceRateCents: parseRateCents(rate.rate),
+            currency: rate.currency, retailRate: rate.retail_rate,
+            shipAirProviderCostCents: null,
+          })),
+        });
+      }
       const rates = rawRates.flatMap((rate): ReferenceRate[] => {
         const carrier = normalizeCarrier(rate.carrier);
         const rateCents = parseRateCents(rate.rate);

@@ -3,6 +3,7 @@ import type { ShippingAddress } from '../types/shipping.js';
 export type SupportedCarrier = 'USPS' | 'UPS' | 'FedEx';
 
 export interface RateRequest {
+  shipmentCategory?: 'standard' | 'book';
   sender: ShippingAddress;
   recipient: ShippingAddress;
   weight: number;

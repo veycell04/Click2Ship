@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { EasyPostRateProvider } from '../src/providers/easyPostRateProvider.js';
 import { InMemoryPricingQuoteRepository, LiveEasyPostPricingService } from '../src/services/pricingService.js';
 import type { RateProvider, ReferenceRate, SupportedCarrier } from '../src/services/rateProvider.js';
 import { calculateBookCustomerPrice } from '../src/services/bookPricing.js';
+import { parsePricingQuoteInput } from '../src/schemas/pricingQuote.js';
 
 const address = { fullName: 'Test User', company: '', phone: '', address1: '1 Main St', address2: '', city: 'Chicago', state: 'IL', zip: '60601', country: 'US' };
 const input = { selectionId: '123e4567-e89b-42d3-a456-426614174000', labelTypeId: 87, weight: 2, length: 14, width: 10, height: 6, sender: address, recipient: address };
@@ -33,6 +35,27 @@ const commonRates = [
 ];
 
 describe('service-class benchmark pricing', () => {
+  it.each(['book', 'standard', undefined] as const)('preserves or defaults parsed category %s', (shipmentCategory) => {
+    const parsed = parsePricingQuoteInput({ ...input, ...(shipmentCategory === undefined ? {} : { shipmentCategory }) });
+    expect(parsed.shipmentCategory).toBe(shipmentCategory ?? 'standard');
+  });
+
+  it.each([
+    [1, 702, 1031, 2088, 562],
+    [2, 593, 1098, 2220, 474],
+  ])('replays the logged %d lb economy quote without applying book pricing', async (weight, usps, smartPost, ground, customer) => {
+    const rates = [rate('USPS', 'GroundAdvantage', usps), rate('FedEx', 'SMART_POST', smartPost), rate('FedEx', 'FEDEX_GROUND', ground)];
+    const payload = { ...input, labelTypeId: 120, weight, length: 12, width: 9, height: 1 };
+    const request = parsePricingQuoteInput(payload);
+    expect(request.shipmentCategory).toBe('standard');
+    const quote = await serviceFor(rates).getQuote(request);
+    expect(quote).toMatchObject({ labelTypeId: 120, serviceName: 'USPS Ground Advantage',
+      shipmentCategory: 'standard', referencePriceCents: usps, customerPriceCents: customer });
+    const bookQuote = await serviceFor(rates).getQuote(parsePricingQuoteInput({ ...payload, shipmentCategory: 'book' }));
+    expect(bookQuote).toMatchObject({ shipmentCategory: 'book', labelTypeId: 120,
+      referencePriceCents: usps, customerPriceCents: usps + 25 });
+  });
+
   it.each([
     [20, 1_000, 800],
     [30, 1_000, 700],
@@ -60,12 +83,12 @@ describe('service-class benchmark pricing', () => {
   });
 
   it('uses only economy services for Ground Advantage and prices $8.18 at $6.54', async () => {
-    const quote = await serviceFor(commonRates).getQuote({ ...input, labelTypeId: 120 });
+    const quote = await serviceFor(commonRates).getQuote(parsePricingQuoteInput({ ...input, labelTypeId: 120, shipmentCategory: 'standard' }));
     expect(quote).toMatchObject({ labelTypeId: 120, serviceName: 'USPS Ground Advantage', referencePriceCents: 818, customerPriceCents: 654, savingsCents: 164 });
   });
 
   it('uses only comparable expedited services for Priority and prices $11.50 at $9.20', async () => {
-    const quote = await serviceFor(commonRates).getQuote(input);
+    const quote = await serviceFor(commonRates).getQuote(parsePricingQuoteInput({ ...input, shipmentCategory: 'standard' }));
     expect(quote).toMatchObject({ labelTypeId: 87, serviceName: 'USPS Priority Mail', referencePriceCents: 1150, customerPriceCents: 920, savingsCents: 230 });
   });
 
@@ -96,6 +119,42 @@ describe('service-class benchmark pricing', () => {
 
 describe('book shipment pricing', () => {
   const bookInput = { ...input, shipmentCategory: 'book' as const };
+
+  it('traces a synthetic 1 lb / 2 lb inversion through actual conversion and reference-rate pricing', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const weights: number[] = [];
+    const provider = new EasyPostRateProvider('test', { create: async (parameters) => {
+      const weight = Number(parameters.parcel?.weight);
+      weights.push(weight);
+      return { id: `shp_${weight}`, rates: [
+        { id: `ground_${weight}`, carrier: 'USPS', service: 'GroundAdvantage', rate: weight === 16 ? '5.41' : '4.49', currency: 'USD' },
+        { id: `media_${weight}`, carrier: 'USPS', service: 'MediaMail', rate: '4.00', currency: 'USD' },
+        { id: `priority_${weight}`, carrier: 'USPS', service: 'Priority', rate: '8.00', currency: 'USD' },
+      ] } as never;
+    } });
+    try {
+      const service = new LiveEasyPostPricingService(provider, new InMemoryPricingQuoteRepository(), 20);
+      const one = await service.getQuote({ ...bookInput, weight: 1 });
+      const two = await service.getQuote({ ...bookInput, weight: 2 });
+      expect(weights).toEqual([16, 32]);
+      expect(one).toMatchObject({ labelTypeId: 120, referencePriceCents: 541, customerPriceCents: 566, isMediaMail: false });
+      expect(two).toMatchObject({ labelTypeId: 120, referencePriceCents: 449, customerPriceCents: 474, isMediaMail: false });
+      for (const [weight, cost, normal, final] of [[1, 541, 433, 566], [2, 449, 359, 474]]) {
+        expect(log).toHaveBeenCalledWith('BOOK_PRICE_CALCULATION', expect.objectContaining({
+          requestedWeightLb: weight, convertedWeightOz: weight! * 16,
+          referenceRateCents: cost, normalCalculatedPrice: normal,
+          BOOK_TARGET_PRICE_CENTS: 399, BOOK_MIN_MARGIN_CENTS: 25,
+          minimumSellPrice: final, customerPriceCents: final, shipAirProviderCostCents: null,
+        }));
+      }
+      expect(log).toHaveBeenCalledWith('BOOK_RATE_SELECTION', expect.objectContaining({
+        mediaMailAvailable: true, mediaMailLabelTypeId: null, fallbackServiceUsed: true,
+        rates: expect.arrayContaining([expect.objectContaining({ serviceCode: 'MediaMail', mappedLabelTypeId: null })]),
+      }));
+      expect(log).toHaveBeenCalledWith('BOOK_PROVIDER_RATES', expect.objectContaining({ rates: expect.any(Array) }));
+      expect(JSON.stringify(log.mock.calls)).not.toContain(address.address1);
+    } finally { log.mockRestore(); }
+  });
 
   it('prefers Media Mail when a verified ShipAir label type ID is configured', async () => {
     const quote = await serviceFor(

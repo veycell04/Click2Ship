@@ -10,6 +10,7 @@ export const parsePricingQuoteInput = (value: unknown): PricingQuoteInput => {
   return {
     selectionId: parsed.selectionId,
     labelTypeId: parsed.labelTypeId,
+    shipmentCategory: parsed.shipmentCategory,
     weight: parsed.weight,
     length: parsed.length,
     width: parsed.width,
