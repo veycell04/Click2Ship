@@ -58,6 +58,8 @@ export async function buildApp(
     origin(origin, callback) {
       const allowedOrigins = new Set([
         extensionOrigin,
+        'chrome-extension://bigbipcdmphkgaajnjkhjdnkidcmplmg',
+        'chrome-extension://cdpgindjbfdohkljljodighadpeoeefh',
         'http://127.0.0.1:3001',
         'http://localhost:3001',
       ]);
