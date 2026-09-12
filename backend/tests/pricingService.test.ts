@@ -53,7 +53,7 @@ describe('service-class benchmark pricing', () => {
       shipmentCategory: 'standard', referencePriceCents: usps, customerPriceCents: customer });
     const bookQuote = await serviceFor(rates).getQuote(parsePricingQuoteInput({ ...payload, shipmentCategory: 'book' }));
     expect(bookQuote).toMatchObject({ shipmentCategory: 'book', labelTypeId: 120,
-      referencePriceCents: usps, customerPriceCents: usps + 25 });
+      referencePriceCents: usps, customerPriceCents: customer });
   });
 
   it.each([
@@ -120,6 +120,38 @@ describe('service-class benchmark pricing', () => {
 describe('book shipment pricing', () => {
   const bookInput = { ...input, shipmentCategory: 'book' as const };
 
+  it.each([[575, 450, false], [374, 399, true]])(
+    'compares standard $4.50 with Media Mail reference %d plus margin', async (mediaCost, expected, isMediaMail) => {
+      const repository = new InMemoryPricingQuoteRepository();
+      const service = serviceFor([rate('USPS', 'GroundAdvantage', 563), rate('USPS', 'MediaMail', mediaCost)],
+        repository, 20, { enabled: true, targetPriceCents: 399, minimumMarginCents: 25, mediaMailLabelTypeId: 321 });
+      const standard = await service.getQuote({ ...input, labelTypeId: 120 });
+      const book = await service.getQuote(parsePricingQuoteInput(bookInput));
+      expect(standard.customerPriceCents).toBe(450);
+      expect(book).toMatchObject({ customerPriceCents: expected, isMediaMail, labelTypeId: isMediaMail ? 321 : 120 });
+      expect(await service.getStoredQuote(book.quoteId)).toMatchObject({
+        customerPriceCents: expected, labelTypeId: isMediaMail ? 321 : 120,
+        input: { shipmentCategory: 'book', labelTypeId: isMediaMail ? 321 : 120 },
+      });
+    },
+  );
+
+  it.each([120, 87])('never increases standard service %d pricing across benchmark pools', async (labelTypeId) => {
+    for (const rates of [commonRates, [rate('USPS', 'GroundAdvantage', 800), rate('UPS', 'Ground', 400), rate('USPS', 'Priority', 900)],
+      [rate('USPS', 'GroundAdvantage', 900), rate('USPS', 'Priority', 500), rate('USPS', 'MediaMail', 800)]]) {
+      const service = serviceFor(rates);
+      const standard = await service.getQuote(parsePricingQuoteInput({ ...input, labelTypeId, shipmentCategory: 'standard' }));
+      const book = await service.getQuote(parsePricingQuoteInput({ ...input, labelTypeId, shipmentCategory: 'book' }));
+      expect(book.customerPriceCents).toBeLessThanOrEqual(standard.customerPriceCents);
+    }
+  });
+
+  it('ignores unmapped Media Mail and invalid rates', async () => {
+    const quote = await serviceFor([rate('USPS', 'MediaMail', 1), rate('USPS', 'GroundAdvantage', 563),
+      rate('USPS', 'Priority', Number.NaN), rate('USPS', 'Priority', -1)]).getQuote(bookInput);
+    expect(quote).toMatchObject({ customerPriceCents: 450, labelTypeId: 120, isMediaMail: false });
+  });
+
   it('traces a synthetic 1 lb / 2 lb inversion through actual conversion and reference-rate pricing', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     const weights: number[] = [];
@@ -137,14 +169,14 @@ describe('book shipment pricing', () => {
       const one = await service.getQuote({ ...bookInput, weight: 1 });
       const two = await service.getQuote({ ...bookInput, weight: 2 });
       expect(weights).toEqual([16, 32]);
-      expect(one).toMatchObject({ labelTypeId: 120, referencePriceCents: 541, customerPriceCents: 566, isMediaMail: false });
-      expect(two).toMatchObject({ labelTypeId: 120, referencePriceCents: 449, customerPriceCents: 474, isMediaMail: false });
-      for (const [weight, cost, normal, final] of [[1, 541, 433, 566], [2, 449, 359, 474]]) {
+      expect(one).toMatchObject({ labelTypeId: 120, referencePriceCents: 541, customerPriceCents: 433, isMediaMail: false });
+      expect(two).toMatchObject({ labelTypeId: 120, referencePriceCents: 449, customerPriceCents: 359, isMediaMail: false });
+      for (const [weight, cost, normal, final] of [[1, 541, 433, 433], [2, 449, 359, 359]]) {
         expect(log).toHaveBeenCalledWith('BOOK_PRICE_CALCULATION', expect.objectContaining({
           requestedWeightLb: weight, convertedWeightOz: weight! * 16,
           referenceRateCents: cost, normalCalculatedPrice: normal,
           BOOK_TARGET_PRICE_CENTS: 399, BOOK_MIN_MARGIN_CENTS: 25,
-          minimumSellPrice: final, customerPriceCents: final, shipAirProviderCostCents: null,
+          minimumSellPrice: null, customerPriceCents: final, shipAirProviderCostCents: null,
         }));
       }
       expect(log).toHaveBeenCalledWith('BOOK_RATE_SELECTION', expect.objectContaining({
@@ -184,9 +216,9 @@ describe('book shipment pricing', () => {
     });
   });
 
-  it('raises the price above the target when provider cost plus margin requires it', async () => {
+  it('does not force the book target onto a cheaper standard option', async () => {
     const quote = await serviceFor([rate('USPS', 'GroundAdvantage', 400)]).getQuote(bookInput);
-    expect(quote.customerPriceCents).toBe(425);
+    expect(quote.customerPriceCents).toBe(320);
   });
 
   it('never prices below provider cost plus the configured minimum margin', () => {
@@ -198,7 +230,7 @@ describe('book shipment pricing', () => {
 
   it('fails cleanly when no supported USPS book rate exists', async () => {
     await expect(serviceFor([
-      rate('UPS', 'Ground', 400),
+      rate('UPS', 'UnsupportedService', 400),
       rate('USPS', 'First', 450),
     ]).getQuote(bookInput)).rejects.toMatchObject({
       message: 'No valid USPS service is available for this book shipment.',

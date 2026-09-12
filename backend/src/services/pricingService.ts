@@ -4,7 +4,6 @@ import { getShippingServiceMapping, getShippingServiceMappingByReferenceService 
 import { poundsToOunces } from '../providers/easyPostRateProvider.js';
 import { eligibleBenchmarkRates } from './benchmarkEligibility.js';
 import {
-  calculateBookCustomerPrice,
   selectBookRate,
   type BookPricingConfig,
 } from './bookPricing.js';
@@ -90,9 +89,10 @@ export class LiveEasyPostPricingService implements PricingService {
     let resolvedLabelTypeId: number;
     let resolvedServiceName: string;
     let isMediaMail = false;
+    let bookCustomerPriceCents: number | undefined;
     let rates: ReferenceRate[];
     if (shipmentCategory === 'book') {
-      const bookSelection = selectBookRate(availableRates, this.bookConfig.mediaMailLabelTypeId);
+      const bookSelection = selectBookRate(availableRates, this.bookConfig, this.discountPercent);
       console.log('BOOK_RATE_SELECTION', {
         selectionId: input.selectionId, requestedWeightLb: input.weight,
         convertedWeightOz: poundsToOunces(input.weight), shipmentCategory,
@@ -108,7 +108,7 @@ export class LiveEasyPostPricingService implements PricingService {
         selectedRate: bookSelection,
         fallbackServiceUsed: bookSelection ? !bookSelection.isMediaMail : null,
         fallbackPricingUsed: false,
-        selectionBasis: 'Prefer mapped Media Mail; otherwise lowest reference rate among mapped USPS services',
+        selectionBasis: 'Lowest customer price across existing standard USPS fulfillment options and mapped Media Mail',
       });
       if (!bookSelection) throw new PricingRateUnavailableError(
         'No valid USPS service is available for this book shipment.',
@@ -120,6 +120,7 @@ export class LiveEasyPostPricingService implements PricingService {
         ? 'USPS Media Mail'
         : getShippingServiceMapping(bookSelection.labelTypeId)?.displayName ?? bookSelection.rate.serviceName;
       isMediaMail = bookSelection.isMediaMail;
+      bookCustomerPriceCents = bookSelection.customerPriceCents;
       rates = [bookSelection.rate];
     } else {
       const standardService = selectedService!;
@@ -136,11 +137,7 @@ export class LiveEasyPostPricingService implements PricingService {
     const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
     const benchmark = this.option(selectedRate);
     if (shipmentCategory === 'book') {
-      const customerPriceCents = calculateBookCustomerPrice(
-        selectedRate.rateCents,
-        benchmark.customerPriceCents,
-        this.bookConfig,
-      );
+      const customerPriceCents = bookCustomerPriceCents!;
       console.log('BOOK_PRICE_CALCULATION', {
         selectionId: input.selectionId, providerShipmentId: selectedRate.providerShipmentId,
         providerRateId: selectedRate.providerRateId,
@@ -148,14 +145,14 @@ export class LiveEasyPostPricingService implements PricingService {
         selectedService: resolvedServiceName, selectedServiceCode: selectedRate.serviceCode,
         selectedLabelTypeId: resolvedLabelTypeId, providerCarrier: selectedRate.providerCarrier,
         referenceRateCents: selectedRate.rateCents,
-        providerCostCentsUsedByFormula: selectedRate.rateCents,
+        providerCostCentsUsedByFormula: isMediaMail ? selectedRate.rateCents : null,
         shipAirProviderCostCents: null,
         costSource: 'Reference rate; ShipAir cost is not fetched during quoting',
         normalCalculatedPrice: benchmark.customerPriceCents,
         discountPercent: this.discountPercent,
         BOOK_TARGET_PRICE_CENTS: this.bookConfig.targetPriceCents,
         BOOK_MIN_MARGIN_CENTS: this.bookConfig.minimumMarginCents,
-        minimumSellPrice: selectedRate.rateCents + this.bookConfig.minimumMarginCents,
+        minimumSellPrice: isMediaMail ? selectedRate.rateCents + this.bookConfig.minimumMarginCents : null,
         customerPriceCents, fallbackServiceUsed: !isMediaMail, fallbackPricingUsed: false,
       });
       benchmark.customerPriceCents = customerPriceCents;

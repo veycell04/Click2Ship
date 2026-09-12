@@ -1,5 +1,6 @@
 import type { ReferenceRate } from './rateProvider.js';
-import { getShippingServiceMappingByReferenceService } from './shippingServiceMapping.js';
+import { SERVICE_MAPPINGS } from './shippingServiceMapping.js';
+import { eligibleBenchmarkRates } from './benchmarkEligibility.js';
 
 export interface BookPricingConfig {
   enabled: boolean;
@@ -12,6 +13,7 @@ export interface BookRateSelection {
   rate: ReferenceRate;
   labelTypeId: number;
   isMediaMail: boolean;
+  customerPriceCents: number;
 }
 
 export const calculateBookCustomerPrice = (
@@ -25,18 +27,25 @@ export const calculateBookCustomerPrice = (
 
 export function selectBookRate(
   rates: ReferenceRate[],
-  mediaMailLabelTypeId: number | null,
+  config: BookPricingConfig,
+  discountPercent: number,
 ): BookRateSelection | null {
-  const uspsRates = rates.filter((rate) => rate.carrier === 'USPS' && rate.rateCents > 0);
-  if (mediaMailLabelTypeId) {
-    const mediaMail = uspsRates
-      .filter((rate) => rate.serviceCode === 'MediaMail')
-      .sort((a, b) => a.rateCents - b.rateCents)[0];
-    if (mediaMail) return { rate: mediaMail, labelTypeId: mediaMailLabelTypeId, isMediaMail: true };
-  }
-  const supported = uspsRates.flatMap((rate): BookRateSelection[] => {
-    const mapping = getShippingServiceMappingByReferenceService(rate.serviceCode);
-    return mapping ? [{ rate, labelTypeId: mapping.providerLabelTypeId, isMediaMail: false }] : [];
+  const valid = rates.filter((rate) => Number.isSafeInteger(rate.rateCents) && rate.rateCents > 0 && rate.currency === 'USD');
+  const normalPrice = (rate: ReferenceRate) => Math.round(rate.rateCents * (100 - discountPercent) / 100);
+  // These are USPS fulfillment options using the SAME cross-carrier benchmark
+  // pools as standard quotes. Restricting benchmarks to USPS would raise prices.
+  const candidates = Object.values(SERVICE_MAPPINGS).flatMap((mapping): BookRateSelection[] => {
+    const rate = eligibleBenchmarkRates(valid, mapping.benchmarkClass).sort((a, b) => a.rateCents - b.rateCents)[0];
+    return rate ? [{ rate, labelTypeId: mapping.providerLabelTypeId, isMediaMail: false,
+      customerPriceCents: normalPrice(rate) }] : [];
   });
-  return supported.sort((a, b) => a.rate.rateCents - b.rate.rateCents)[0] ?? null;
+  if (config.mediaMailLabelTypeId) {
+    for (const rate of valid.filter((rate) => rate.carrier === 'USPS' && rate.serviceCode === 'MediaMail')) {
+      candidates.push({ rate, labelTypeId: config.mediaMailLabelTypeId, isMediaMail: true,
+        // Preserve the existing conservative Media Mail reference-plus-margin
+        // calculation. The reference is NOT a verified ShipAir fulfillment cost.
+        customerPriceCents: calculateBookCustomerPrice(rate.rateCents, normalPrice(rate), config) });
+    }
+  }
+  return candidates.sort((a, b) => a.customerPriceCents - b.customerPriceCents)[0] ?? null;
 }
