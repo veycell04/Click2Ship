@@ -55,6 +55,8 @@ export async function buildConfiguredApp() {
       targetPriceCents: config.bookTargetPriceCents,
       minimumMarginCents: config.bookMinMarginCents,
       mediaMailLabelTypeId: config.shipAirMediaMailLabelTypeId,
+      confirmMediaMailSupport: async () => (await shippingProvider.getLabelTypes())
+        .some((type) => type.id === config.shipAirMediaMailLabelTypeId),
     },
   );
   if (config.bookShippingEnabled && !config.shipAirMediaMailLabelTypeId) {

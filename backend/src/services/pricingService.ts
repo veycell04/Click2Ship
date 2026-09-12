@@ -92,7 +92,11 @@ export class LiveEasyPostPricingService implements PricingService {
     let bookCustomerPriceCents: number | undefined;
     let rates: ReferenceRate[];
     if (shipmentCategory === 'book') {
-      const bookSelection = selectBookRate(availableRates, this.bookConfig, this.discountPercent);
+      const mediaMailSupported = this.bookConfig.mediaMailLabelTypeId &&
+        (!this.bookConfig.confirmMediaMailSupport || await this.bookConfig.confirmMediaMailSupport().catch(() => false));
+      const bookSelection = selectBookRate(availableRates,
+        { ...this.bookConfig, mediaMailLabelTypeId: mediaMailSupported ? this.bookConfig.mediaMailLabelTypeId : null },
+        this.discountPercent, input.bookService === 'selected' ? input.labelTypeId : undefined);
       console.log('BOOK_RATE_SELECTION', {
         selectionId: input.selectionId, requestedWeightLb: input.weight,
         convertedWeightOz: poundsToOunces(input.weight), shipmentCategory,
@@ -111,7 +115,7 @@ export class LiveEasyPostPricingService implements PricingService {
         selectionBasis: 'Lowest customer price across existing standard USPS fulfillment options and mapped Media Mail',
       });
       if (!bookSelection) throw new PricingRateUnavailableError(
-        'No valid USPS service is available for this book shipment.',
+        input.bookService === 'selected' ? 'The selected service is unavailable for this book shipment.' : 'No valid USPS service is available for this book shipment.',
         availableRates.filter((rate) => rate.carrier === 'USPS').map((rate) => rate.serviceCode),
       );
       selectedRate = bookSelection.rate;

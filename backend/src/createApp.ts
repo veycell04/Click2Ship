@@ -172,6 +172,8 @@ void trackPurchase(purchase);
       const labelTypes = providerLabelTypes.map((labelType) => ({
         ...labelType,
         name: getShippingServiceMapping(labelType.id)?.displayName ?? labelType.name,
+        ...(config.bookShippingEnabled && config.shipAirMediaMailLabelTypeId === labelType.id
+          ? { bookService: 'media-mail', name: 'USPS Media Mail' } : {}),
       }));
       labelTypes.forEach((labelType) => labelTypeNames.set(labelType.id, labelType.name));
       app.log.info({ labelTypes }, 'Normalized label types');

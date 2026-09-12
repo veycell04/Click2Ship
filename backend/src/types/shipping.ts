@@ -21,6 +21,7 @@ export interface CreateLabelInput {
   recipient: ShippingAddress;
   reference: string;
   shipmentCategory?: 'standard' | 'book';
+  bookService?: 'best' | 'selected';
 }
 
 export interface ShippingBalance {

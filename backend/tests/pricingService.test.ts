@@ -119,6 +119,24 @@ describe('service-class benchmark pricing', () => {
 
 describe('book shipment pricing', () => {
   const bookInput = { ...input, shipmentCategory: 'book' as const };
+  it.each([[120, 450], [87, 640]])('honors explicit book service %d', async (labelTypeId, price) => {
+    const quote = await serviceFor([rate('USPS', 'GroundAdvantage', 563), rate('USPS', 'Priority', 800)])
+      .getQuote(parsePricingQuoteInput({ ...bookInput, labelTypeId, bookService: 'selected' }));
+    expect(quote).toMatchObject({ labelTypeId, customerPriceCents: price });
+  });
+  it('does not substitute when an explicit service is unavailable', async () => {
+    await expect(serviceFor([rate('USPS', 'GroundAdvantage', 563)])
+      .getQuote({ ...bookInput, labelTypeId: 87, bookService: 'selected' }))
+      .rejects.toThrow('The selected service is unavailable');
+  });
+  it.each([true, false])('requires provider confirmation for explicit Media Mail: %s', async (supported) => {
+    const service = new LiveEasyPostPricingService({ getRates: async () => [rate('USPS', 'MediaMail', 374), rate('USPS', 'GroundAdvantage', 563)] },
+      new InMemoryPricingQuoteRepository(), 20, { enabled: true, targetPriceCents: 399, minimumMarginCents: 25,
+        mediaMailLabelTypeId: 321, confirmMediaMailSupport: async () => supported });
+    const quote = service.getQuote({ ...bookInput, labelTypeId: 321, bookService: 'selected' });
+    if (supported) expect(await quote).toMatchObject({ labelTypeId: 321, isMediaMail: true, customerPriceCents: 399 });
+    else await expect(quote).rejects.toThrow('The selected service is unavailable');
+  });
 
   it.each([[575, 450, false], [374, 399, true]])(
     'compares standard $4.50 with Media Mail reference %d plus margin', async (mediaCost, expected, isMediaMail) => {

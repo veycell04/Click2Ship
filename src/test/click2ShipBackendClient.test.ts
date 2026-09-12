@@ -119,7 +119,7 @@ describe('Click2ShipBackendClient messaging', () => {
     });
   });
 
-  it('marks the Book / Poly Mailer preset as a book pricing request', async () => {
+  it.each(['best', '120', '87'])('sends book service choice %s with the category', async (selectedService) => {
     const send = vi.fn(async () => ({
       success: true,
       status: 200,
@@ -148,14 +148,14 @@ describe('Click2ShipBackendClient messaging', () => {
     const client = new Click2ShipBackendClient(messenger(send), 'http://test');
     await client.getPricingQuote(
       '123e4567-e89b-42d3-a456-426614174000',
-      '87',
+      selectedService,
       { ...emptyAddress(), country: 'US', state: 'IL', zipCode: '60101' },
       { ...emptyAddress(), country: 'US', state: 'NY', zipCode: '10453' },
       { ...parcel, preset: 'book-poly-mailer' },
     );
     expect(send).toHaveBeenCalledWith({
       type: 'GET_PRICING_QUOTE',
-      payload: expect.objectContaining({ shipmentCategory: 'book' }),
+      payload: expect.objectContaining({ shipmentCategory: 'book', bookService: selectedService === 'best' ? 'best' : 'selected', labelTypeId: selectedService === 'best' ? 120 : Number(selectedService) }),
     });
   });
 

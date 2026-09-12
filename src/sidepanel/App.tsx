@@ -252,7 +252,9 @@ export function App() {
   const [completedShipment, setCompletedShipment] = useState<CompletedShipment | null>(null);
   const [recentLabels, setRecentLabels] = useState<CompletedShipment[]>([]);
   const [labelTypes, setLabelTypes] = useState<BackendLabelType[]>([]);
-  const [selectedLabelTypeId, setSelectedLabelTypeId] = useState<string>('');
+  const [standardLabelTypeId, setSelectedLabelTypeId] = useState<string>('');
+  const [bookLabelTypeId, setBookLabelTypeId] = useState<string>('best');
+  const selectedLabelTypeId = parcel.preset === 'book-poly-mailer' ? bookLabelTypeId : standardLabelTypeId;
   const [creatingLabel, setCreatingLabel] = useState(false);
   const [labelError, setLabelError] = useState('');
   const [backendHealth, setBackendHealth] = useState('not checked');
@@ -806,6 +808,7 @@ export function App() {
     Number(parcel.height) > 0;
 
   const changePreset = (preset: PackageDetails['preset']) => {
+    if (preset === 'book-poly-mailer' && parcel.preset !== preset) setBookLabelTypeId('best');
     ['package.weight', 'package.length', 'package.width', 'package.height'].forEach(
       clearBackendPricingFieldError,
     );
@@ -1287,7 +1290,7 @@ export function App() {
               ))}
             </select>
           </label>
-          {parcel.preset !== 'book-poly-mailer' && (
+          {(
             <label
               className={`wide${missingPricingByKey.has('service.labelType') && touchedPricingFields.has('service.labelType') ? ' field-missing' : ''}`}
             >
@@ -1295,10 +1298,12 @@ export function App() {
               <LabelTypeSelect
                 id="label-type"
                 labelTypes={labelTypes}
+                isBook={parcel.preset === 'book-poly-mailer'}
                 selectedLabelTypeId={selectedLabelTypeId}
                 onChange={(value) => {
                   clearBackendPricingFieldError('service.labelType');
-                  setSelectedLabelTypeId(value);
+                  if (parcel.preset === 'book-poly-mailer') setBookLabelTypeId(value);
+                  else setSelectedLabelTypeId(value);
                   setTouchedPricingFields((current) => new Set(current).add('service.labelType'));
                 }}
                 invalid={missingPricingByKey.has('service.labelType') && touchedPricingFields.has('service.labelType')}
@@ -1313,7 +1318,7 @@ export function App() {
           {parcel.preset === 'book-poly-mailer' && (
             <div className="book-shipping-notice" role="status">
               <strong>Optimized for eligible book shipments</strong>
-              <span>ShipDime selects the lowest eligible supported USPS service after you enter the package weight.</span>
+              <span>Media Mail eligibility depends on package contents.</span>
             </div>
           )}
           <div className="dimensions">

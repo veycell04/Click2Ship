@@ -6,6 +6,16 @@ import { emptyShipmentSession, shipmentSessionReducer } from '../sidepanel/shipm
 const backendLabelTypes = [{ id: 87, name: 'USPS APIs Priority Mail 9201', description: '' }];
 
 describe('LabelTypeSelect', () => {
+  it.each([false, true])('shows book services with confirmed Media Mail support = %s', (supported) => {
+    const markup = renderToStaticMarkup(<LabelTypeSelect isBook selectedLabelTypeId="best" onChange={() => {}}
+      labelTypes={[{ id: 120, name: 'Ground' }, { id: 87, name: 'Priority' },
+        { id: 321, name: 'Media Mail', ...(supported ? { bookService: 'media-mail' as const } : {}) }]} />);
+    expect(markup).toContain('Best Rate / Cheapest');
+    expect(markup).toContain('USPS Ground Advantage');
+    expect(markup).toContain('USPS Priority Mail');
+    expect(markup.includes('USPS Media Mail')).toBe(supported);
+    expect(markup).toContain('value="best" selected=""');
+  });
   it('renders only backend-provided label types and no diagnostic option', () => {
     const markup = renderToStaticMarkup(
       <LabelTypeSelect

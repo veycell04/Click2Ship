@@ -24,6 +24,7 @@ export interface CreateLabelRequest {
 }
 
 export interface PricingQuoteRequest {
+  bookService?: 'best' | 'selected';
   selectionId: string;
   labelTypeId: number;
   weight: number;

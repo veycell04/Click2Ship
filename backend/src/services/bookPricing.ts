@@ -7,6 +7,7 @@ export interface BookPricingConfig {
   targetPriceCents: number;
   minimumMarginCents: number;
   mediaMailLabelTypeId: number | null;
+  confirmMediaMailSupport?: () => Promise<boolean>;
 }
 
 export interface BookRateSelection {
@@ -29,6 +30,7 @@ export function selectBookRate(
   rates: ReferenceRate[],
   config: BookPricingConfig,
   discountPercent: number,
+  selectedLabelTypeId?: number,
 ): BookRateSelection | null {
   const valid = rates.filter((rate) => Number.isSafeInteger(rate.rateCents) && rate.rateCents > 0 && rate.currency === 'USD');
   const normalPrice = (rate: ReferenceRate) => Math.round(rate.rateCents * (100 - discountPercent) / 100);
@@ -47,5 +49,6 @@ export function selectBookRate(
         customerPriceCents: calculateBookCustomerPrice(rate.rateCents, normalPrice(rate), config) });
     }
   }
-  return candidates.sort((a, b) => a.customerPriceCents - b.customerPriceCents)[0] ?? null;
+  return candidates.filter((candidate) => selectedLabelTypeId === undefined || candidate.labelTypeId === selectedLabelTypeId)
+    .sort((a, b) => a.customerPriceCents - b.customerPriceCents)[0] ?? null;
 }

@@ -18,6 +18,19 @@ service, label type ID, reference rate, and category. Equal prices keep the firs
 standard candidate. Missing Media Mail does not prevent standard candidates.
 The target is not a forced price or a discount applied to standard candidates.
 
+Book quote requests may specify `bookService: "best"` (the default for older
+clients) or `bookService: "selected"`. Selected mode restricts candidates to
+the requested `labelTypeId`, and returns an unavailable-service error instead
+of substituting. Best Rate is never more expensive than the equivalent standard
+option; an explicitly selected service may cost more than a different service.
+The standard UI and its selection remain independent of book choices.
+
+In production, Media Mail requires both a configured label type ID and a
+matching ID in ShipAir's label-type response. The backend marks that label type
+with `bookService: "media-mail"` for the dropdown and rechecks provider support
+when quoting. A missing/failed confirmation excludes Media Mail. Eligibility
+also requires a USPS MediaMail reference rate for the shipment.
+
 ## Fulfillment cost limitation
 
 The current quote provider supplies EasyPost reference rates, not ShipAir

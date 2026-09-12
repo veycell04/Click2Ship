@@ -73,6 +73,14 @@ const config = {
 };
 
 describe('Click2Ship backend', () => {
+  it.each([null, 1, 321])('confirms Media Mail only when configured ID %s is returned by provider', async (mediaId) => {
+    const app = await buildApp({ ...config, bookShippingEnabled: true, shipAirMediaMailLabelTypeId: mediaId }, new FakeProvider(), new InMemoryLabelRepository());
+    try {
+      const response = await app.inject({ method: 'GET', url: '/api/shipping/label-types' });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().labelTypes[0].bookService).toBe(mediaId === 1 ? 'media-mail' : undefined);
+    } finally { await app.close(); }
+  });
   it('serializes PostgreSQL diagnostics without exposing connection credentials', () => {
     const error = Object.assign(
       new Error('connect failed for postgresql://user:password@db.example.com/click2ship'),

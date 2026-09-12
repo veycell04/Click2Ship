@@ -8,6 +8,7 @@ export function LabelTypeSelect({
   id,
   describedBy,
   invalid = false,
+  isBook = false,
 }: {
   labelTypes: BackendLabelType[];
   selectedLabelTypeId: string;
@@ -15,6 +16,7 @@ export function LabelTypeSelect({
   id?: string;
   describedBy?: string;
   invalid?: boolean;
+  isBook?: boolean;
 }) {
   const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
     onChange(event.target.value);
@@ -22,10 +24,10 @@ export function LabelTypeSelect({
 
   return (
     <select id={id} value={selectedLabelTypeId} required onChange={handleChange} aria-describedby={describedBy} aria-invalid={invalid || undefined}>
-      <option value="">Select a label type</option>
-      {labelTypes.map((labelType) => (
+      {isBook ? <option value="best">Best Rate / Cheapest</option> : <option value="">Select a label type</option>}
+      {(isBook ? labelTypes.filter((type) => type.id === 120 || type.id === 87 || type.bookService === 'media-mail') : labelTypes).map((labelType) => (
         <option key={labelType.id} value={String(labelType.id)}>
-          {labelType.name}
+          {isBook ? labelType.id === 120 ? 'USPS Ground Advantage' : labelType.id === 87 ? 'USPS Priority Mail' : 'USPS Media Mail' : labelType.name}
         </option>
       ))}
     </select>

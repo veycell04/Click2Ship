@@ -9,6 +9,7 @@ import type {
 } from '../messaging/backendMessages';
 
 export interface BackendLabelType {
+  bookService?: 'media-mail';
   id: number;
   name: string;
   description?: string;
@@ -280,6 +281,8 @@ export class Click2ShipBackendClient {
     recipient: Address,
     parcel: PackageDetails,
   ): Promise<BackendPriceQuote> {
+    const isBook = parcel.preset === 'book-poly-mailer';
+    const quoteLabelTypeId = isBook && selectedLabelTypeId === 'best' ? '120' : selectedLabelTypeId;
     const path = '/api/pricing/quote';
     const requestedUrl = this.urlFor(path);
     const startedAt = performance.now();
@@ -288,7 +291,7 @@ export class Click2ShipBackendClient {
     try {
       const shipmentSnapshot = this.createShipmentPayload(
         selectionId,
-        selectedLabelTypeId,
+        quoteLabelTypeId,
         sender,
         recipient,
         parcel,
@@ -298,7 +301,8 @@ export class Click2ShipBackendClient {
           type: 'GET_PRICING_QUOTE',
           payload: {
             selectionId,
-            labelTypeId: Number(selectedLabelTypeId),
+            labelTypeId: Number(quoteLabelTypeId),
+            ...(isBook ? { bookService: selectedLabelTypeId === 'best' ? 'best' as const : 'selected' as const } : {}),
             weight: Number(parcel.weight),
             length: Number(parcel.length),
             width: Number(parcel.width),
