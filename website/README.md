@@ -21,13 +21,10 @@ npm run build
 
 ## Environment variables
 
-Copy `.env.example` to `.env.local` when a Chrome Web Store listing is available:
+All Chrome Web Store links use the production URL in `lib/chromeStore.ts`:
+https://chromewebstore.google.com/detail/shipdime/efjokppnnolhmjgmdokogmacmcojglek
 
-```text
-NEXT_PUBLIC_CHROME_STORE_URL=https://chromewebstore.google.com/detail/...
-```
-
-If the variable is missing or blank, the primary call to action displays “Coming to Chrome” and does not create a dead store link.
+`NEXT_PUBLIC_CHROME_STORE_URL` is no longer used; stale deployment values cannot override the production listing.
 
 No backend credentials belong in this application. Public browser environment variables must use the `NEXT_PUBLIC_` prefix and must never contain secrets.
 
@@ -41,7 +38,7 @@ Import the repository and configure:
 - Build Command: `npm run build`
 - Output Directory: leave unset (Next.js default)
 
-Add `NEXT_PUBLIC_CHROME_STORE_URL` only when the public listing is ready. The site is intended to be served at `https://www.shipdime.com`.
+No Chrome Web Store environment variable is required. The site is intended to be served at `https://www.shipdime.com`.
 
 ## Legal review
 

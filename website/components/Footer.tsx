@@ -1,13 +1,13 @@
 import Link from 'next/link';
+import { CHROME_STORE_URL } from '../lib/chromeStore';
 
 export function Footer() {
-  const storeUrl = process.env.NEXT_PUBLIC_CHROME_STORE_URL?.trim();
   return (
     <footer className="site-footer">
       <div className="shell footer-grid">
         <div><strong>ShipDime</strong><p>Select. Right-click. Ship.</p><p>A product of Veycell LLC.</p></div>
         <nav aria-label="Footer navigation">
-          {storeUrl && <a href={storeUrl} target="_blank" rel="noreferrer">Chrome Web Store</a>}
+          <a href={CHROME_STORE_URL} target="_blank" rel="noreferrer">Chrome Web Store</a>
           <Link href="/about">What is ShipDime?</Link>
           <Link href="/create-shipping-label-from-website">Create from a website</Link>
           <Link href="/shipping-label-without-integration">Shipping without integration</Link>
