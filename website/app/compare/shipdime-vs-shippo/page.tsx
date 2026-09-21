@@ -1,8 +1,8 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../../lib/metadata';
 import { ComparisonPage } from '../../../components/ComparisonPage';
 const title = 'ShipDime vs. Shippo: Workflow Comparison';
 const description = 'Compare ShipDime’s selectable-address Chrome workflow with considerations for evaluating Shippo’s current shipping workflow and integrations.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/compare/shipdime-vs-shippo' }, openGraph: { title, description, url: '/compare/shipdime-vs-shippo', type: 'article' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/compare/shipdime-vs-shippo', type: 'article' });
 const faqs = [
   { question: 'What is the verified ShipDime workflow difference?', answer: 'ShipDime begins with recipient address text selected directly in Chrome and does not require a dedicated sales-channel integration for that address-selection workflow.' },
   { question: 'Does this page compare Shippo pricing or carrier support?', answer: 'No. Current Shippo pricing, carriers, integrations, and product features should be verified through Shippo’s official documentation.' },

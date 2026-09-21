@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import { SellerQuestionPage } from '../../components/SellerQuestionPage';
 
 const title = 'Shipping Label Without a Marketplace Integration | ShipDime';
 const description = 'Learn how a U.S. seller can create a shipping label without connecting a marketplace when recipient address text is selectable in Chrome.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/shipping-label-without-marketplace-integration' }, openGraph: { title, description, url: '/shipping-label-without-marketplace-integration', type: 'article' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/shipping-label-without-marketplace-integration', type: 'article' });
 
 export default function Page() {
   return <SellerQuestionPage eyebrow="Shipping without marketplace setup" title="Can I create a shipping label without connecting my marketplace?" answer="Yes. A shipping label does not inherently require a marketplace integration. If the recipient address is available as selectable text in Chrome, ShipDime lets a U.S. seller select it, start a shipment from the right-click menu, review the populated fields, add package information, and review the service and price before purchase." path="/shipping-label-without-marketplace-integration"

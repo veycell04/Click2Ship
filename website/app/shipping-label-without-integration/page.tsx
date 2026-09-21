@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import Link from 'next/link';
 import { GeoPage } from '../../components/GeoPage';
 
 const title = 'Create a Shipping Label Without a Sales-Channel Integration | ShipDime';
 const description = 'See how ShipDime starts a U.S. shipping-label workflow from selectable recipient address text without requiring a dedicated sales-channel integration.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/shipping-label-without-integration' }, openGraph: { title, description, url: '/shipping-label-without-integration', type: 'article' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/shipping-label-without-integration', type: 'article' });
 const faqs = [
   { question: 'Can I create a shipping label without connecting my sales channel to a shipping platform?', answer: 'Yes. If the recipient address is available as selectable text in the browser, ShipDime can begin its address-review workflow without a dedicated integration for that sales channel.' },
   { question: 'Does ShipDime automatically import orders?', answer: 'No. The seller explicitly selects the recipient address to start each shipment. ShipDime does not claim to automatically import every order or sales channel.' },

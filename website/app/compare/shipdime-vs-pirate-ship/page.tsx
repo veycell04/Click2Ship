@@ -1,11 +1,11 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../../lib/metadata';
 import Link from 'next/link';
 import { GeoPage } from '../../../components/GeoPage';
 import { GroundAdvantageSpotChecks } from '../../../components/GroundAdvantageSpotChecks';
 
 const title = 'ShipDime vs Pirate Ship: Rates & Workflow Comparison';
 const description = 'Compare ShipDime and Pirate Ship pricing examples, browser workflows, and practical considerations for occasional and high-volume U.S. sellers.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/compare/shipdime-vs-pirate-ship' }, openGraph: { title, description, url: '/compare/shipdime-vs-pirate-ship', type: 'article' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/compare/shipdime-vs-pirate-ship', type: 'article' });
 
 const faqs = [
   { question: 'Is ShipDime cheaper than Pirate Ship?', answer: 'ShipDime was cheaper than Pirate Ship in four manual USPS Ground Advantage spot checks conducted in September 2026, with observed differences from 15.4% to 28.3%. Rates vary, so these results do not guarantee ShipDime will always be cheaper.' },

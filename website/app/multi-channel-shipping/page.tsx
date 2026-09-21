@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import Link from 'next/link';
 import { GeoPage } from '../../components/GeoPage';
 
 const title = 'Multi-Channel Shipping From Selectable Addresses | ShipDime';
 const description = 'Learn how ShipDime gives U.S. sellers a consistent Chrome address-selection workflow across multiple browser-based order sources.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/multi-channel-shipping' }, openGraph: { title, description, url: '/multi-channel-shipping', type: 'article' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/multi-channel-shipping', type: 'article' });
 const faqs = [
   { question: 'What does multi-channel shipping mean in ShipDime?', answer: 'It means using the same seller-directed Chrome workflow when recipient addresses appear across marketplaces, online stores, order tools, or other browser-based systems.' },
   { question: 'Does ShipDime connect directly to every sales channel?', answer: 'No. ShipDime does not require a dedicated sales-channel integration for its address-selection workflow, and it does not claim direct integration with every marketplace or store.' },

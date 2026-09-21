@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { ChromeCta } from './ChromeCta';
+import { serializeJsonLd } from '../lib/jsonLd';
 
 interface FaqItem {
   question: string;
@@ -28,7 +29,7 @@ export function SeoLandingPage({ eyebrow, title, introduction, children, faqs }:
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      {faqs.length > 0 && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqSchema) }} />}
 
       <section className="seo-hero">
         <div className="shell seo-hero-inner">

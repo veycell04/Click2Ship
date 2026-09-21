@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import { SellerQuestionPage } from '../../components/SellerQuestionPage';
 
 const title = 'Stop Copying and Pasting Shipping Addresses | ShipDime';
 const description = 'Reduce repetitive shipping-address entry by selecting a complete recipient address in Chrome and reviewing editable fields in ShipDime.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/stop-copy-pasting-shipping-addresses' }, openGraph: { title, description, url: '/stop-copy-pasting-shipping-addresses', type: 'article' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/stop-copy-pasting-shipping-addresses', type: 'article' });
 
 export default function Page() {
   return <SellerQuestionPage eyebrow="Reduce repetitive address entry" title="How can I avoid copying and pasting customer addresses into shipping software?" answer="Instead of copying each address field separately, a U.S. seller can select the complete recipient address in Chrome and open ShipDime from the right-click menu. ShipDime populates editable recipient fields from that selection. The seller then reviews the address, adds package information, checks the service and price, and purchases the label." path="/stop-copy-pasting-shipping-addresses"

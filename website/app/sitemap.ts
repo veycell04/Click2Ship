@@ -26,12 +26,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/create-shipping-label-from-any-website',
     '/multi-channel-shipping-labels',
     '/privacy',
+    '/cookie-policy',
     '/terms',
     '/support',
   ].map((path) => ({
     url: `https://www.shipdime.com${path}`,
-    lastModified: new Date('2026-09-02'),
     changeFrequency: path ? 'monthly' : 'weekly',
-    priority: path.startsWith('/privacy') || path.startsWith('/terms') || path.startsWith('/support') ? 0.7 : path ? 0.9 : 1,
+    priority: ['/privacy', '/cookie-policy', '/terms', '/support'].includes(path) ? 0.7 : path ? 0.9 : 1,
   }));
 }

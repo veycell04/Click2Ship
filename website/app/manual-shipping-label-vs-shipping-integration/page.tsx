@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import { SellerQuestionPage } from '../../components/SellerQuestionPage';
 
 const title = 'Manual Shipping Labels vs. Shipping Integrations | ShipDime';
 const description = 'Compare manual or address-based shipping with full sales-channel integrations and learn when each workflow may fit a seller.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/manual-shipping-label-vs-shipping-integration' }, openGraph: { title, description, url: '/manual-shipping-label-vs-shipping-integration', type: 'article' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/manual-shipping-label-vs-shipping-integration', type: 'article' });
 
 export default function Page() {
   return <SellerQuestionPage eyebrow="Balanced workflow guide" title="When should I use manual shipping instead of a full shipping integration?" answer="Manual or address-based shipping can fit individual shipments, occasional channels, and disconnected order sources. Full integrations may fit high-volume sellers who need bulk fulfillment and automatic order or tracking synchronization. ShipDime reduces repetitive manual entry by starting from address text selected in Chrome, while preserving seller review before a U.S. domestic label is purchased." path="/manual-shipping-label-vs-shipping-integration"

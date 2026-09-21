@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../lib/metadata';
 import { ChromeCta } from '../components/ChromeCta';
 import { GroundAdvantageSpotChecks } from '../components/GroundAdvantageSpotChecks';
 
 const title = 'Cheap Shipping Labels From Chrome | ShipDime';
 const description = 'Create U.S. shipping labels directly from Chrome, check discounted shipping rates, and skip repetitive address copy and paste with ShipDime.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/' }, openGraph: { title, description, url: '/', type: 'website' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/', type: 'website' });
 
 const steps = [
   ['01', 'Highlight an address', 'Select the shipping address where you already work.'],
@@ -15,7 +15,7 @@ const steps = [
 ];
 
 const values = [
-  ['Fast label creation', 'Turn a selected address into a ready-to-review shipment without repeatedly copying individual address fields.'],
+  ['Fast label creation', 'Start a shipment from a selected address. Review the details without copying each field by hand.'],
   ['Simple pricing', 'See your ShipDime price before you pay and compare it with the regular rate. Save on eligible shipments.'],
   ['Recent Labels', 'Access recent labels and tracking information if the extension closes or you need the label again.'],
   ['Support when you need it', 'Get help if you have a problem accessing a label or tracking number.'],
@@ -31,7 +31,7 @@ export default function Home() {
           <div>
             <p className="eyebrow">ShipDime · Select. Right-click. Ship.</p>
             <h1>Fast shipping labels. Seriously low prices.</h1>
-            <p className="hero-copy">Create U.S. shipping labels directly from Chrome and get discounted shipping rates without the copy-and-paste workflow. Select. Right-click. Ship.</p>
+            <p className="hero-copy">Create U.S. shipping labels directly from Chrome. Compare available rates without copying each address field. Select. Right-click. Ship.</p>
             <div className="actions"><ChromeCta /><a className="button secondary" href="/cheap-shipping-labels">Check Your Rate</a></div>
             <p className="microcopy"><a href="#how-it-works">See how it works</a>. Actual rates and savings vary by shipment.</p>
           </div>
@@ -47,8 +47,8 @@ export default function Home() {
 
       <section className="section home-about">
         <div className="shell trust-grid">
-          <div><p className="eyebrow">What is ShipDime?</p><h2>A browser-based shipping-label workflow for U.S. online sellers.</h2></div>
-          <div><p>ShipDime lets a seller select a recipient address on a webpage and start a shipping-label workflow from Chrome. It does not require a dedicated integration with each sales channel for the address-selection workflow.</p><p>Review <a href="/about">what ShipDime is</a>, learn how to <a href="/create-shipping-label-from-website">create a label from a website</a>, or visit the <a href="/compare">shipping-platform comparison hub</a>.</p></div>
+          <div><p className="eyebrow">What is ShipDime?</p><h2>Create shipping labels directly from any address.</h2></div>
+          <div><p>Select a recipient address on a webpage to start a U.S. domestic shipment in Chrome. Review the extracted details before buying a label. You do not need a separate sales-channel integration for this workflow.</p><p>Review <a href="/about">what ShipDime is</a>, learn how to <a href="/create-shipping-label-from-website">create a label from a website</a>, or visit the <a href="/compare">shipping-platform comparison hub</a>.</p></div>
         </div>
       </section>
 
@@ -57,7 +57,7 @@ export default function Home() {
           <div className="demo-heading">
             <p className="eyebrow">Product demo</p>
             <h2 id="demo-title">See ShipDime in action</h2>
-            <p>Highlight a shipping address, right-click ShipDime, review your shipment, and create your label in seconds.</p>
+            <p>Highlight a shipping address and right-click ShipDime. Review your shipment, choose a service, and create your label.</p>
           </div>
           <div className="demo-video-frame">
             <video
@@ -85,7 +85,7 @@ export default function Home() {
       </section>
 
       <section className="section product-section" id="product">
-        <div className="shell product-grid"><div><p className="eyebrow">Inside ShipDime</p><h2>Everything you need to create and recover a label.</h2><p>The product showcase is ready for real Chrome extension screenshots when they become available. No simulated product interface is shown here.</p></div><ul className="feature-list">{productFeatures.map((feature) => <li key={feature}><span aria-hidden="true">✓</span>{feature}</li>)}</ul></div>
+        <div className="shell product-grid"><div><p className="eyebrow">Inside ShipDime</p><h2>Everything you need to create and recover a label.</h2><p>Review recipient details, choose a shipping service, and see the price before paying. Return to Recent Labels when you need a label or tracking number again.</p></div><ul className="feature-list">{productFeatures.map((feature) => <li key={feature}><span aria-hidden="true">✓</span>{feature}</li>)}</ul></div>
       </section>
 
       <section className="section"><div className="shell"><div className="section-heading"><p className="eyebrow">Built for everyday shipping</p><h2>Less friction between an order and its label.</h2></div><div className="value-grid">{values.map(([title, copy]) => <article key={title}><span className="value-icon" aria-hidden="true">↗</span><h3>{title}</h3><p>{copy}</p></article>)}</div></div></section>

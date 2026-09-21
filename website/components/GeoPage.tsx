@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { ChromeCta } from './ChromeCta';
+import { serializeJsonLd } from '../lib/jsonLd';
 
 export interface GeoFaq {
   question: string;
@@ -47,8 +48,8 @@ export function GeoPage({ eyebrow, title, answer, path, faqs, children, parent }
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbSchema) }} />
+      {faqs.length > 0 && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqSchema) }} />}
       <section className="seo-hero">
         <div className="shell seo-hero-inner">
           <nav className="breadcrumbs" aria-label="Breadcrumb">

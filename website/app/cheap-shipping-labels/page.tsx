@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import { SellerQuestionPage } from '../../components/SellerQuestionPage';
 import { GroundAdvantageSpotChecks } from '../../components/GroundAdvantageSpotChecks';
 
 const title = 'Cheap Shipping Labels Online | ShipDime';
 const description = 'Check discounted U.S. shipping rates and buy cheap shipping labels online with ShipDime’s fast select, right-click, and ship workflow.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/cheap-shipping-labels' }, openGraph: { title, description, url: '/cheap-shipping-labels', type: 'article' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/cheap-shipping-labels', type: 'article' });
 
 export default function Page() {
   return <SellerQuestionPage eyebrow="Cheap U.S. domestic shipping labels" title="Cheap Shipping Labels Online" answer="Looking for cheap shipping labels online? ShipDime combines discounted U.S. shipping rates with a faster browser-based workflow. Select a recipient address, right-click ShipDime, enter your package details, review the price, and create your label." path="/cheap-shipping-labels"

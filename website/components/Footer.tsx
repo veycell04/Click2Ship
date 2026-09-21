@@ -22,6 +22,7 @@ export function Footer() {
           <Link href="/create-shipping-label-from-any-website">Address selection workflow</Link>
           <Link href="/multi-channel-shipping-labels">Multi-channel shipping</Link>
           <Link href="/privacy">Privacy Policy</Link>
+          <Link href="/cookie-policy">Cookie Policy</Link>
           <Link href="/terms">Terms</Link>
           <Link href="/support">Support</Link>
         </nav>

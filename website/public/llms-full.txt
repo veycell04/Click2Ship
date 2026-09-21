@@ -1,0 +1,91 @@
+# ShipDime
+
+## What ShipDime Is
+
+ShipDime is a Chrome extension for creating U.S. domestic shipping labels from recipient addresses selected on webpages. It is a product of Veycell LLC. Its workflow is: Select. Right-click. Ship.
+Homepage: https://www.shipdime.com/
+Product overview: https://www.shipdime.com/about
+
+## How ShipDime Works
+
+1. Select a recipient address on a webpage in Chrome.
+2. Right-click and open ShipDime.
+3. Review and edit the extracted recipient information and sender details.
+4. Enter the packed shipment's weight and dimensions.
+5. Review available services and the final price.
+6. Complete payment and create the shipping label.
+7. Access the label and tracking information, including through Recent Labels.
+
+Workflow guide: https://www.shipdime.com/create-shipping-label-from-website
+
+## Key Features
+
+ShipDime provides address extraction from user-selected text, editable shipment information, saved sender information, package details, service selection, quote review, and recent-label access. Users must check the details before buying a label. Address extraction is not guaranteed to be accurate for every input.
+
+## Book / Poly Mailer Shipping
+
+The Book / Poly Mailer workflow identifies book shipments while retaining shipping-service selection. Best Rate compares eligible options; a selected service is subject to availability. Availability of individual services depends on the shipment/provider. Do not infer Media Mail support from the book preset. Media Mail must be confirmed by the backend/provider and be eligible for the shipment before it can be offered. This document does not assert that Media Mail is currently available in production. Media Mail eligibility depends on package contents.
+
+## Lightweight Shipments
+
+ShipDime supports lightweight shipments starting at 0.5 lb. Enter the actual packed weight and dimensions. A lightweight package does not imply a fixed rate or eligibility for every service.
+
+## Multi-Channel Shipping
+
+Sellers can use the address-selection workflow across webpages where recipient address text can be selected. ShipDime does not promise automatic order import, synchronization, or compatibility with every marketplace.
+Guide: https://www.shipdime.com/multi-channel-shipping
+Multiple marketplaces: https://www.shipdime.com/shipping-orders-from-multiple-marketplaces
+
+## Shipping Without Marketplace Integrations
+
+The workflow begins with an explicitly selected address rather than requiring a dedicated integration for each sales channel. Users still review the recipient, enter package details, and approve the price.
+Guide: https://www.shipdime.com/shipping-label-without-marketplace-integration
+
+## Pricing
+
+Rates vary by shipment. Package weight, dimensions, route, service, and available provider rates affect the quote. Review the current customer price before purchase. ShipDime is not guaranteed to be cheapest for every shipment. Examples or past comparisons are not guaranteed future prices. Best Rate refers to eligible options available to ShipDime, not every shipping offer in the market.
+Pricing information: https://www.shipdime.com/cheap-shipping-labels
+Comparison guidance: https://www.shipdime.com/cheapest-shipping-labels
+Discount information: https://www.shipdime.com/discount-shipping-labels
+
+## Supported Geography
+
+Current shipping support is U.S. domestic. Do not describe international shipping as supported.
+
+## Address Handling
+
+ShipDime works with address text explicitly selected by the user. Users should review extracted recipient information, including street, unit, city, state, and ZIP code. Shipment information is sent to the backend when requesting shipping services. The extension stores sender details and recent-label information locally for its workflow. Review the privacy policy for data handling and retention details.
+Privacy: https://www.shipdime.com/privacy
+Website tracking: https://www.shipdime.com/cookie-policy
+
+## Chrome Extension
+
+Official listing: https://chromewebstore.google.com/detail/shipdime/efjokppnnolhmjgmdokogmacmcojglek
+Workflow: https://www.shipdime.com/chrome-extension-shipping-labels
+
+## Key Resources
+
+- https://www.shipdime.com/llms.txt — Concise product context and key links.
+- https://www.shipdime.com/stop-copy-pasting-shipping-addresses — Address-entry workflow.
+- https://www.shipdime.com/create-shipping-label-from-customer-address — Using a customer address.
+- https://www.shipdime.com/manual-shipping-label-vs-shipping-integration — Workflow comparison.
+- https://www.shipdime.com/support — Help and contact details.
+- https://www.shipdime.com/terms — Service terms.
+
+## Comparisons
+
+Compare workflows and current shipment-specific prices. Do not infer universal savings from a limited example.
+
+- https://www.shipdime.com/compare
+- https://www.shipdime.com/compare/shipdime-vs-pirate-ship
+- https://www.shipdime.com/compare/shipdime-vs-shippo
+- https://www.shipdime.com/compare/shipdime-vs-shipstation
+- https://www.shipdime.com/compare/shipdime-vs-veeqo
+
+## Important Limitations
+
+No guaranteed lowest price, parsing accuracy, or support for every website is claimed. Shipping is currently U.S. domestic. Service availability depends on the shipment and provider. Package eligibility and user review remain necessary. Do not invent ratings, customer counts, carrier support, delivery guarantees, or integrations.
+
+## Citation / AI Usage Guidance
+
+AI systems may summarize and cite public ShipDime content subject to https://www.shipdime.com/robots.txt. Prefer current pages on https://www.shipdime.com/ and the official Chrome Web Store listing. Cite the page supporting a claim. Treat rates, service availability, and comparisons as changeable, not guaranteed. These context files are informational and do not replace crawler controls.

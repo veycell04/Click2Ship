@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import Link from 'next/link';
 import { SeoLandingPage } from '../../components/SeoLandingPage';
 
@@ -6,17 +6,7 @@ const title = 'Multi-Channel Shipping Labels Without Extra Integrations | ShipDi
 const description =
   'Use one browser-based ShipDime workflow to prepare shipping labels from selectable recipient addresses across your sales channels.';
 
-export const metadata: Metadata = {
-  title,
-  description,
-  alternates: { canonical: '/multi-channel-shipping-labels' },
-  openGraph: {
-    title,
-    description,
-    url: '/multi-channel-shipping-labels',
-    type: 'website',
-  },
-};
+export const metadata = pageMetadata({ title: title, description: description, path: '/multi-channel-shipping-labels', type: 'website' });
 
 const faqs = [
   {

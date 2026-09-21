@@ -1,4 +1,5 @@
-export const metadata = { title: 'Terms — ShipDime', description: 'Terms for using ShipDime shipping-label services.' };
+import { pageMetadata } from '../../lib/metadata';
+export const metadata = pageMetadata({ title: 'Terms — ShipDime', description: 'Terms for using ShipDime shipping-label services.', path: '/terms', type: 'website' });
 
 export default function TermsPage() {
   return <div className="shell legal-page"><p className="eyebrow">Terms</p><h1>ShipDime Terms of Service</h1><p className="updated">Last updated August 11, 2026</p><p className="lead">These terms govern your use of the ShipDime website, Chrome extension, and shipping-label service.</p>

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import Link from 'next/link';
 import { SeoLandingPage } from '../../components/SeoLandingPage';
 
@@ -6,17 +6,7 @@ const title = 'Shipping Label Chrome Extension | ShipDime';
 const description =
   'Use the ShipDime shipping label Chrome extension to turn selected recipient addresses into ready-to-review shipments from your browser.';
 
-export const metadata: Metadata = {
-  title,
-  description,
-  alternates: { canonical: '/shipping-label-chrome-extension' },
-  openGraph: {
-    title,
-    description,
-    url: '/shipping-label-chrome-extension',
-    type: 'website',
-  },
-};
+export const metadata = pageMetadata({ title: title, description: description, path: '/shipping-label-chrome-extension', type: 'website' });
 
 const faqs = [
   {

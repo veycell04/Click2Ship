@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import { SellerQuestionPage } from '../../components/SellerQuestionPage';
 
 const title = 'Shipping Orders From Multiple Marketplaces | ShipDime';
 const description = 'Compare integrated multi-channel shipping with ShipDime’s browser address-selection workflow for disconnected or occasional order sources.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/shipping-orders-from-multiple-marketplaces' }, openGraph: { title, description, url: '/shipping-orders-from-multiple-marketplaces', type: 'article' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/shipping-orders-from-multiple-marketplaces', type: 'article' });
 
 export default function Page() {
   return <SellerQuestionPage eyebrow="Multi-source order shipping" title="How do I handle shipping when I sell on multiple marketplaces?" answer="Sellers can use an integrated multi-channel platform to synchronize supported order sources, or use an address-based workflow for individual shipments. ShipDime supports the second approach: when recipient text is selectable in Chrome, a U.S. seller can start a label without establishing a dedicated integration for every occasional or disconnected source." path="/shipping-orders-from-multiple-marketplaces"

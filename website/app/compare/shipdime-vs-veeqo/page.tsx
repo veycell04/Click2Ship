@@ -1,8 +1,8 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../../lib/metadata';
 import { ComparisonPage } from '../../../components/ComparisonPage';
 const title = 'ShipDime vs. Veeqo: Workflow Comparison';
 const description = 'Compare ShipDime’s selectable-address Chrome workflow with considerations for evaluating Veeqo’s current shipping workflow and integrations.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/compare/shipdime-vs-veeqo' }, openGraph: { title, description, url: '/compare/shipdime-vs-veeqo', type: 'article' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/compare/shipdime-vs-veeqo', type: 'article' });
 const faqs = [
   { question: 'What does ShipDime require from the order source?', answer: 'For automatic selection capture, the recipient address must be available as selectable text on a page where Chrome permits extension access.' },
   { question: 'Does this page claim Veeqo does not support a marketplace?', answer: 'No. It does not assert current Veeqo integrations, limitations, carriers, or pricing. Verify those details through official Veeqo documentation.' },

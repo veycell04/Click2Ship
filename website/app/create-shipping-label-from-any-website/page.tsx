@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import Link from 'next/link';
 import { SeoLandingPage } from '../../components/SeoLandingPage';
 
@@ -6,17 +6,7 @@ const title = 'Create a Shipping Label From Any Website | ShipDime';
 const description =
   'Learn how ShipDime turns selectable recipient address text in your browser into an editable shipping-label workflow.';
 
-export const metadata: Metadata = {
-  title,
-  description,
-  alternates: { canonical: '/create-shipping-label-from-any-website' },
-  openGraph: {
-    title,
-    description,
-    url: '/create-shipping-label-from-any-website',
-    type: 'website',
-  },
-};
+export const metadata = pageMetadata({ title: title, description: description, path: '/create-shipping-label-from-any-website', type: 'website' });
 
 const faqs = [
   {

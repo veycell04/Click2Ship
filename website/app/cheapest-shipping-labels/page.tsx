@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import { SellerQuestionPage } from '../../components/SellerQuestionPage';
 import { GroundAdvantageSpotChecks } from '../../components/GroundAdvantageSpotChecks';
 
 const title = 'Cheapest Shipping Labels Online: Compare Your Rate | ShipDime';
 const description = 'Learn how to find the cheapest shipping labels online by comparing identical package, route, service, and discount details—and check ShipDime’s tested prices.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/cheapest-shipping-labels' }, openGraph: { title, description, url: '/cheapest-shipping-labels', type: 'article' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/cheapest-shipping-labels', type: 'article' });
 
 export default function Page() {
   return <SellerQuestionPage eyebrow="Shipping rate comparison" title="How to Find the Cheapest Shipping Labels Online" answer="There is no universally cheapest shipping provider. The lowest price depends on package weight, dimensions, route, service, and available discounts. Compare the same shipment across providers, then review the final price before purchase. ShipDime offers discounted U.S. domestic labels and shows the rate before checkout." path="/cheapest-shipping-labels"

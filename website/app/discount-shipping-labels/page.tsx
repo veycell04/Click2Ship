@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import { SellerQuestionPage } from '../../components/SellerQuestionPage';
 
 const title = 'Discount Shipping Labels for U.S. Sellers | ShipDime';
 const description = 'Learn what discounted shipping labels are, what affects final postage prices, and how ShipDime displays eligible savings before purchase.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/discount-shipping-labels' }, openGraph: { title, description, url: '/discount-shipping-labels', type: 'article' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/discount-shipping-labels', type: 'article' });
 
 export default function Page() {
   return <SellerQuestionPage eyebrow="Discounted shipping rates" title="What are discount shipping labels?" answer="Discount shipping labels are labels offered at a price below an applicable reference rate. The final amount still depends on the package, route, service, and discount eligibility. ShipDime shows U.S. sellers the shipping price before purchase and offers up to 20% savings on eligible shipping rates; actual rates and savings vary by shipment." path="/discount-shipping-labels"

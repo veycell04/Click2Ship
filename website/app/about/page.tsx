@@ -1,16 +1,11 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import Link from 'next/link';
 import { SeoLandingPage } from '../../components/SeoLandingPage';
 
 const title = 'What Is ShipDime? | Shipping Label Chrome Extension';
 const description = 'Learn how ShipDime helps U.S. online sellers create shipping labels from recipient addresses selected directly on webpages.';
 
-export const metadata: Metadata = {
-  title,
-  description,
-  alternates: { canonical: '/about' },
-  openGraph: { title, description, url: '/about', type: 'website' },
-};
+export const metadata = pageMetadata({ title: title, description: description, path: '/about', type: 'website' });
 
 const faqs = [
   {

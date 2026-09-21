@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import Link from 'next/link';
 import { GeoPage } from '../../components/GeoPage';
 
 const title = 'Chrome Extension for Shipping Labels | ShipDime';
 const description = 'Understand how the ShipDime Chrome extension turns selected recipient address text into an editable U.S. shipping-label workflow.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/chrome-extension-shipping-labels' }, openGraph: { title, description, url: '/chrome-extension-shipping-labels', type: 'article' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/chrome-extension-shipping-labels', type: 'article' });
 const faqs = [
   { question: 'What is a shipping-label Chrome extension?', answer: 'It is browser software that helps start or manage a shipping-label task inside Chrome. ShipDime begins from recipient address text explicitly selected by the seller.' },
   { question: 'What happens after I select an address?', answer: 'Right-click Create Shipping Label to open ShipDime, then review and edit recipient fields, enter package information, choose an available service, and review pricing before purchase.' },

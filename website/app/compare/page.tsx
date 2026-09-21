@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import Link from 'next/link';
 import { GeoPage } from '../../components/GeoPage';
 
 const title = 'Compare ShipDime With Shipping Platforms';
 const description = 'Compare ShipDime’s Chrome address-selection workflow with traditional integration and import-based shipping-platform workflows.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/compare' }, openGraph: { title, description, url: '/compare', type: 'website' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/compare', type: 'website' });
 const comparisons = [
   ['/compare/shipdime-vs-shippo', 'ShipDime vs. Shippo'],
   ['/compare/shipdime-vs-pirate-ship', 'ShipDime vs. Pirate Ship'],

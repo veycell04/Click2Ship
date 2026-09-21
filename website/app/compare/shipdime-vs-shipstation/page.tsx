@@ -1,8 +1,8 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../../lib/metadata';
 import { ComparisonPage } from '../../../components/ComparisonPage';
 const title = 'ShipDime vs. ShipStation: Workflow Comparison';
 const description = 'Compare ShipDime’s focused Chrome address-selection workflow with considerations for evaluating ShipStation’s current platform workflow.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/compare/shipdime-vs-shipstation' }, openGraph: { title, description, url: '/compare/shipdime-vs-shipstation', type: 'article' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/compare/shipdime-vs-shipstation', type: 'article' });
 const faqs = [
   { question: 'Is ShipDime a full warehouse or order-management platform?', answer: 'No such claim is made. ShipDime focuses on a user-directed Chrome address-to-label workflow.' },
   { question: 'Does this comparison list ShipStation features?', answer: 'No. ShipStation’s current automation, integrations, carriers, pricing, and operational features should be verified from official ShipStation documentation.' },

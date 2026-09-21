@@ -1,0 +1,7 @@
+ShipDime permits public website content to be indexed, summarized, and cited by AI-powered search and assistant systems, subject to applicable crawler controls in robots.txt.
+
+This is an informational file, not a standardized crawler-control mechanism. It does not override robots.txt or technically grant crawler access.
+
+Crawler controls: https://www.shipdime.com/robots.txt
+Concise product context: https://www.shipdime.com/llms.txt
+Expanded product context: https://www.shipdime.com/llms-full.txt

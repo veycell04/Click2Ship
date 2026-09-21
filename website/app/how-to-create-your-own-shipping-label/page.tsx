@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import { SellerQuestionPage } from '../../components/SellerQuestionPage';
 
 const title = 'How to Create Your Own Shipping Label | ShipDime';
 const description = 'Learn the information and steps needed to create your own U.S. shipping label, including how ShipDime reduces repetitive address entry in Chrome.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/how-to-create-your-own-shipping-label' }, openGraph: { title, description, url: '/how-to-create-your-own-shipping-label', type: 'article' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/how-to-create-your-own-shipping-label', type: 'article' });
 
 export default function Page() {
   return <SellerQuestionPage eyebrow="Shipping label basics" title="How do I create my own shipping label?" answer="To create your own shipping label, gather the sender and recipient addresses, measure the packed shipment, choose a shipping service, review the price, purchase the label, and print it. ShipDime simplifies recipient entry by letting U.S. sellers select address text in Chrome, right-click, and review editable fields before purchase." path="/how-to-create-your-own-shipping-label"

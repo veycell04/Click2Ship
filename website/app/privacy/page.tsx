@@ -1,4 +1,5 @@
-export const metadata = { title: 'Privacy Policy — ShipDime', description: 'How ShipDime handles information used to create shipping labels.' };
+import { pageMetadata } from '../../lib/metadata';
+export const metadata = pageMetadata({ title: 'Privacy Policy — ShipDime', description: 'How ShipDime handles information used to create shipping labels.', path: '/privacy', type: 'website' });
 
 export default function PrivacyPage() {
   return <div className="shell legal-page"><p className="eyebrow">Privacy</p><h1>ShipDime Privacy Policy</h1><p className="updated">Last updated August 11, 2026</p><p className="lead">This policy explains the information ShipDime processes when you use the website, Chrome extension, checkout, and shipping-label service.</p>
@@ -10,6 +11,7 @@ export default function PrivacyPage() {
     <section><h2>Service providers and disclosures</h2><p>ShipDime shares information with service providers only as needed to calculate shipping options, process payment, create and retrieve labels, host the service, store operational records, and provide support. We may also disclose information when required by law, to prevent fraud or misuse, or to protect users and the service.</p></section>
     <section><h2>Retention and deletion</h2><p>ShipDime’s current application does not define a fixed retention or automatic deletion period for backend quote, order, and label records. Local extension data remains until it is replaced, cleared by the extension, or removed through Chrome. Contact us to ask about access or deletion; requests may be limited where records must be retained for security, legal, accounting, fraud-prevention, or shipping-support purposes.</p></section>
     <section><h2>Security and choices</h2><p>We use technical and organizational safeguards appropriate to the service. No system can guarantee absolute security. Review highlighted text before starting a shipment, keep your browser profile secure, and avoid selecting unrelated sensitive information.</p></section>
+    <section><h2>Website advertising measurement</h2><p>The public website loads a Google Ads tag after the page becomes interactive. Google may use cookies or advertising identifiers and receive page-visit, ad-interaction, browser/device, and network information for measurement and attribution. The website currently has no site-level consent gate before loading this tag. See our <a href="/cookie-policy">Cookie and Tracking Policy</a> for details and browser controls.</p></section>
     <section><h2>Contact</h2><p>Questions or privacy requests: <a href="mailto:info@veycell.org">info@veycell.org</a>.</p></section>
   </div>;
 }

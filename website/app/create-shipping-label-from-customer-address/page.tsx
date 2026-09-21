@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import { SellerQuestionPage } from '../../components/SellerQuestionPage';
 
 const title = 'Create a Shipping Label From a Customer Address | ShipDime';
 const description = 'Learn what recipient and package information is needed to create a U.S. shipping label from a customer address with ShipDime.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/create-shipping-label-from-customer-address' }, openGraph: { title, description, url: '/create-shipping-label-from-customer-address', type: 'article' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/create-shipping-label-from-customer-address', type: 'article' });
 
 export default function Page() {
   return <SellerQuestionPage eyebrow="Customer address to label" title="Can I create a shipping label from a customer's address?" answer="Yes. To create a label from a customer address, you need the recipient name, street, apartment or unit when applicable, city, state, and ZIP code, plus accurate package weight and dimensions. ShipDime can populate editable recipient fields from address text selected in Chrome before the seller chooses a service and reviews the price." path="/create-shipping-label-from-customer-address"

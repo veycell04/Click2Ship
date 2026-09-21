@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
+import { pageMetadata } from '../../lib/metadata';
 import Link from 'next/link';
 import { GeoPage } from '../../components/GeoPage';
 
 const title = 'How to Create a Shipping Label From a Website | ShipDime';
 const description = 'Learn how U.S. sellers can select a recipient address on a webpage, review it in ShipDime, and create a shipping label from Chrome.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/create-shipping-label-from-website' }, openGraph: { title, description, url: '/create-shipping-label-from-website', type: 'article' } };
+export const metadata = pageMetadata({ title: title, description: description, path: '/create-shipping-label-from-website', type: 'article' });
 
 const faqs = [
   { question: 'How can I create a shipping label from an address on a website?', answer: 'If the recipient address is available as selectable text in Chrome, select it, right-click Create Shipping Label, review the populated recipient fields, add package details, choose an available service, review the price, and purchase the label.' },

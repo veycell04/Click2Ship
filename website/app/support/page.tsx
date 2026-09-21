@@ -1,4 +1,5 @@
-export const metadata = { title: 'Support — ShipDime', description: 'Get help with a ShipDime shipping label or tracking number.' };
+import { pageMetadata } from '../../lib/metadata';
+export const metadata = pageMetadata({ title: 'Support — ShipDime', description: 'Get help with a ShipDime shipping label or tracking number.', path: '/support', type: 'website' });
 
 export default function SupportPage() {
   const subject = encodeURIComponent('ShipDime support');
