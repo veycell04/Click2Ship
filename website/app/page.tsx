@@ -59,20 +59,39 @@ export default function Home() {
             <h2 id="demo-title">See ShipDime in action</h2>
             <p>Highlight a shipping address and right-click ShipDime. Review your shipment, choose a service, and create your label.</p>
           </div>
-          <div className="demo-video-frame">
-            <video
-              className="demo-video"
-              autoPlay
-              muted
-              loop
-              playsInline
-              controls
-              preload="metadata"
-              aria-label="ShipDime Chrome extension product demonstration"
-            >
-              <source src="/videos/shipdime-demo.mp4" type="video/mp4" />
-              Your browser does not support embedded videos.
-            </video>
+          <div className="demo-video-grid">
+            <div className="demo-video-card">
+              <h3>How ShipDime Works</h3>
+              <div className="demo-video-frame">
+                <video
+                  className="demo-video"
+                  muted
+                  loop
+                  playsInline
+                  controls
+                  preload="metadata"
+                  aria-label="How ShipDime Works: shipping label workflow demonstration"
+                >
+                  <source src="/videos/shipdime-demo.mp4" type="video/mp4" />
+                  Your browser does not support embedded videos.
+                </video>
+              </div>
+            </div>
+            <div className="demo-video-card">
+              <h3>ShipDime in Action</h3>
+              <div className="demo-video-frame">
+                <video
+                  className="demo-video"
+                  playsInline
+                  controls
+                  preload="metadata"
+                  aria-label="ShipDime in Action: additional product demonstration"
+                >
+                  <source src="/videos/shipdime-demo-2.mp4" type="video/mp4" />
+                  Your browser does not support embedded videos.
+                </video>
+              </div>
+            </div>
           </div>
           <div className="demo-actions">
             <ChromeCta label="Add ShipDime to Chrome" />
