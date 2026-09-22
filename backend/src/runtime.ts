@@ -52,6 +52,7 @@ export async function buildConfiguredApp() {
     config.shipDimeDiscountPercent,
     {
       enabled: config.bookShippingEnabled,
+      discountPercent: config.bookDiscountPercent,
       targetPriceCents: config.bookTargetPriceCents,
       minimumMarginCents: config.bookMinMarginCents,
       mediaMailLabelTypeId: config.shipAirMediaMailLabelTypeId,

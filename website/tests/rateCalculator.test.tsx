@@ -7,6 +7,12 @@ const input: RateInputs = { originZip: '60101', destinationZip: '48047', weight:
 const estimate = { labelTypeId: 120, serviceName: 'USPS Ground Advantage', customerPriceCents: 527, customerDisplayAmount: '$5.27', currency: 'usd' as const, shipmentCategory: 'standard' as const, isMediaMail: false };
 afterEach(() => vi.unstubAllGlobals());
 describe('public calculator', () => {
+  it('displays a valid zero-dollar backend Book estimate without applying client-side pricing', async () => {
+    const zero = { ...estimate, shipmentCategory: 'book', customerPriceCents: 0, customerDisplayAmount: '$0.00' };
+    const result = await fetchRateEstimate({ ...input, shipmentCategory: 'book' }, async () => new Response(JSON.stringify({ success: true, estimate: zero, options: [zero] })));
+    expect(result.estimate.customerPriceCents).toBe(0);
+    expect(result.estimate.customerDisplayAmount).toBe('$0.00');
+  });
   it('renders an indexable form, default Best Rate, disclosures, and no invented Media Mail option without fetching', () => {
     const fetch = vi.fn(); vi.stubGlobal('fetch', fetch);
     const html = renderToStaticMarkup(<RateCalculator />);

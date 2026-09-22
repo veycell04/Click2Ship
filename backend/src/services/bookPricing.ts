@@ -4,6 +4,8 @@ import { eligibleBenchmarkRates } from './benchmarkEligibility.js';
 
 export interface BookPricingConfig {
   enabled: boolean;
+  /** null/undefined retains legacy pricing, including its Media Mail target. */
+  discountPercent?: number | null;
   targetPriceCents: number;
   minimumMarginCents: number;
   mediaMailLabelTypeId: number | null;
@@ -33,7 +35,7 @@ export function selectBookRate(
   selectedLabelTypeId?: number,
 ): BookRateSelection | null {
   const valid = rates.filter((rate) => Number.isSafeInteger(rate.rateCents) && rate.rateCents > 0 && rate.currency === 'USD');
-  const normalPrice = (rate: ReferenceRate) => Math.round(rate.rateCents * (100 - discountPercent) / 100);
+  const normalPrice = (rate: ReferenceRate) => Math.round(rate.rateCents * (100 - (config.discountPercent ?? discountPercent)) / 100);
   // These are USPS fulfillment options using the SAME cross-carrier benchmark
   // pools as standard quotes. Restricting benchmarks to USPS would raise prices.
   const candidates = Object.values(SERVICE_MAPPINGS).flatMap((mapping): BookRateSelection[] => {
@@ -46,7 +48,11 @@ export function selectBookRate(
       candidates.push({ rate, labelTypeId: config.mediaMailLabelTypeId, isMediaMail: true,
         // Preserve the existing conservative Media Mail reference-plus-margin
         // calculation. The reference is NOT a verified ShipAir fulfillment cost.
-        customerPriceCents: calculateBookCustomerPrice(rate.rateCents, normalPrice(rate), config) });
+        // Opt-in percentage mode uses the reference once, without the legacy
+        // target or reference-as-cost floor. Actual ShipAir cost is unknown.
+        customerPriceCents: config.discountPercent == null
+          ? calculateBookCustomerPrice(rate.rateCents, normalPrice(rate), config)
+          : normalPrice(rate) });
     }
   }
   return candidates.filter((candidate) => selectedLabelTypeId === undefined || candidate.labelTypeId === selectedLabelTypeId)

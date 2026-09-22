@@ -13,6 +13,7 @@ export interface BackendConfig {
   shipDimeDiscountPercent: number;
   databaseUrl: string;
   bookShippingEnabled: boolean;
+  bookDiscountPercent: number | null;
   bookTargetPriceCents: number;
   bookMinMarginCents: number;
   shipAirMediaMailLabelTypeId: number | null;
@@ -48,6 +49,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
     ),
     databaseUrl: env.DATABASE_URL || '',
     bookShippingEnabled: (env.BOOK_SHIPPING_ENABLED ?? 'true').toLowerCase() === 'true',
+    // Unset preserves legacy pricing; empty or non-decimal values are invalid.
+    bookDiscountPercent: env.BOOK_DISCOUNT_PERCENT === undefined ? null
+      : /^(?:\d+(?:\.\d*)?|\.\d+)$/.test(env.BOOK_DISCOUNT_PERCENT.trim())
+        ? Number(env.BOOK_DISCOUNT_PERCENT) : NaN,
     bookTargetPriceCents: Number(env.BOOK_TARGET_PRICE_CENTS ?? 399),
     bookMinMarginCents: Number(env.BOOK_MIN_MARGIN_CENTS ?? 25),
     shipAirMediaMailLabelTypeId: env.SHIPAIR_MEDIA_MAIL_LABEL_TYPE_ID
@@ -57,6 +62,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BackendConfig 
 }
 
 export function assertBackendConfig(config: BackendConfig): void {
+  if (config.bookDiscountPercent != null && (!Number.isFinite(config.bookDiscountPercent) || config.bookDiscountPercent < 0 || config.bookDiscountPercent > 100))
+    throw new Error('BOOK_DISCOUNT_PERCENT must be a numeric percentage from 0 through 100 (40 means 40%).');
   if (
     !Number.isFinite(config.shipDimeDiscountPercent) ||
     config.shipDimeDiscountPercent < 0 ||

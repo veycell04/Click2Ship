@@ -1,47 +1,84 @@
-# Book quote selection
+# Book discount configuration
 
-The quote parser preserves `shipmentCategory`; an omitted category defaults to
-`standard`. Standard quote selection and discount calculations are unchanged.
+Set `BOOK_DISCOUNT_PERCENT=40` in the **backend** Vercel environment and redeploy
+the backend to apply the environment change. Values are percentages, including
+decimals, from 0 through 100; `40` means 40%, while `0.40` means 0.4%.
+No extension update or Chrome Web Store review is needed.
 
-For book quotes, compare these eligible candidates by final customer price:
+When configured, every eligible Book candidate uses:
 
-- Ground Advantage and Priority: use each service's existing benchmark eligibility
-  rules and cheapest reference rate, then `round(referenceCents * (100 - discountPercent) / 100)`.
-  These are USPS fulfillment services; their existing benchmarks can include
-  comparable FedEx or UPS rates. Keeping those pools preserves standard prices.
-- Media Mail: include only a positive USD USPS MediaMail rate with the existing
-  configured ShipAir Media Mail label type ID. Preserve its existing calculation:
-  `max(referenceCents + minimumMarginCents, min(discountedReferenceCents, targetPriceCents))`.
+`Math.round(referenceRateCents * (100 - BOOK_DISCOUNT_PERCENT) / 100)`
 
-Return the candidate with the lowest customer price and persist its corresponding
-service, label type ID, reference rate, and category. Equal prices keep the first
-standard candidate. Missing Media Mail does not prevent standard candidates.
-The target is not a forced price or a discount applied to standard candidates.
+The existing service-class reference pools, fulfillment mappings, explicit
+selection rules, and Media Mail support confirmation remain unchanged. Best Rate
+selects the cheapest eligible Book candidate. The standard discount is not
+applied first. Standard shipments continue using `SHIPDIME_DISCOUNT_PERCENT`
+(including its existing legacy alias and default).
 
-Book quote requests may specify `bookService: "best"` (the default for older
-clients) or `bookService: "selected"`. Selected mode restricts candidates to
-the requested `labelTypeId`, and returns an unavailable-service error instead
-of substituting. Best Rate is never more expensive than the equivalent standard
-option; an explicitly selected service may cost more than a different service.
-The standard UI and its selection remain independent of book choices.
+## Backward compatibility
 
-In production, Media Mail requires both a configured label type ID and a
-matching ID in ShipAir's label-type response. The backend marks that label type
-with `bookService: "media-mail"` for the dropdown and rechecks provider support
-when quoting. A missing/failed confirmation excludes Media Mail. Eligibility
-also requires a USPS MediaMail reference rate for the shipment.
+Leave the variable absent to retain the complete previous Book behavior:
 
-## Fulfillment cost limitation
+- Ground/Priority: apply the configured standard discount to the same reference.
+- Supported Media Mail: `max(reference + BOOK_MIN_MARGIN_CENTS,
+  min(standard-discounted reference, BOOK_TARGET_PRICE_CENTS))`.
+- Best Rate: choose the lowest eligible candidate.
 
-The current quote provider supplies EasyPost reference rates, not ShipAir
-fulfillment costs. No verified provider cost is available during quoting.
-Therefore standard candidates retain the existing standard discount behavior;
-Media Mail retains its conservative reference-plus-margin calculation. Neither
-an EasyPost reference nor the stored `carrierRateCents` field proves ShipAir cost,
-and this flow cannot guarantee a margin against an unknown fulfillment cost.
+An empty or invalid value fails startup; it does not silently become zero.
+`BOOK_TARGET_PRICE_CENTS` is retained for legacy compatibility. It is ignored in
+percentage mode, where applying it would conflict with the percentage-only rule.
+Recommended future cleanup: remove the target only after deliberately retiring
+legacy fallback. It has not been removed here.
 
-If verified costs are introduced, they must be matched to the actual fulfillment
-service and shipment before comparing candidates, and candidates below that cost
-plus required margin must be excluded. Such a floor can conflict with the
-never-exceed-standard requirement when the unchanged standard quote itself is
-below cost; it must not be implemented by silently assuming reference equals cost.
+## Cost and consumer limitations
+
+The quote path fetches EasyPost reference rates, **not actual ShipAir fulfillment
+costs**. A reference is not a purchasable ShipAir cost. Percentage mode therefore
+cannot guarantee a provider-cost-plus-margin floor and does not invent one.
+`BOOK_MIN_MARGIN_CENTS` still participates in the legacy Media Mail calculation;
+it does not provide a real-cost guarantee in either mode. If verified fulfillment
+costs are introduced later, apply the real cost plus required margin before
+comparing candidates.
+
+The website estimate and extension quote use the same backend calculation.
+Equal provider rates and service/category produce equal customer prices, covered
+by tests using both actual clients. The website remains ZIP-only as previously
+requested: full addresses or changing provider rates can produce different live
+prices. No frontend discount formula was added.
+
+At 100%, quotes are zero dollars when there is no actual cost floor. The website
+accepts and displays this backend amount. Stripe and purchase behavior were not
+changed or certified for zero-dollar purchases. Lower Book discounts than the
+standard discount can make Book more expensive; percentage mode intentionally
+uses the independent Book percentage rather than silently capping it with the
+standard price.
+
+## Existing service selection contract
+
+The parser preserves `shipmentCategory`; a missing category defaults to `standard`.
+Book requests use `bookService: "best"` by default, or `bookService: "selected"`
+to restrict candidates to the requested `labelTypeId`. An unavailable explicit
+service returns an error rather than substituting another service. Equal-priced
+candidates retain existing ordering; at 100% several services can tie at zero.
+
+Ground/Priority benchmark pools can include comparable FedEx and UPS rates even
+though fulfillment is USPS. These pools and their service mappings are unchanged.
+Production Media Mail requires both the configured ShipAir ID and a matching ID
+from the provider's label-type response, plus a valid USPS MediaMail reference
+rate. Missing or failed confirmation excludes Media Mail, not the other services.
+Persisted extension quotes retain the resolved service, label ID, rate, and category;
+public ZIP-only estimates remain unpersisted and cannot be used for checkout.
+
+`BOOK_PRICE_CALCULATION` logs the mode, reference service/cents, configured Book
+percentage, discounted candidate, selected fulfillment service, final cents,
+and null actual-cost floor with `marginFloorGuaranteed: false`. No addresses,
+credentials, or payment details are added to logs.
+
+For a mocked 600-cent reference (no actual fulfillment cost available):
+
+| Book discount | Customer price |
+| --- | --- |
+| 20% | $4.80 |
+| 30% | $4.20 |
+| 40% | $3.60 |
+| 50% | $3.00 |

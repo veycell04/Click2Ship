@@ -18,11 +18,12 @@ const rate = (serviceCode: string, rateCents: number): ReferenceRate => ({ provi
 const provider = { getLabelTypes: async () => [{ id: 120, name: 'Ground', description: '' }, { id: 87, name: 'Priority', description: '' }] } as LabelProvider;
 const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
 afterEach(async () => { await Promise.all(apps.splice(0).map((app) => app.close())); });
-async function setup(rates = [rate('GroundAdvantage', 751), rate('Priority', 923), rate('MediaMail', 310)], mediaSupported = false) {
+async function setup(rates = [rate('GroundAdvantage', 751), rate('Priority', 923), rate('MediaMail', 310)], mediaSupported = false, bookDiscountPercent?: number) {
   const repository = new InMemoryPricingQuoteRepository();
   const save = vi.spyOn(repository, 'save');
   const getRates = vi.fn(async (input: RateRequest) => { void input; return rates; });
   const service = new LiveEasyPostPricingService({ getRates }, repository, 20, {
+    discountPercent: bookDiscountPercent,
     enabled: true, targetPriceCents: 399, minimumMarginCents: 25, mediaMailLabelTypeId: mediaSupported ? 321 : null,
     confirmMediaMailSupport: async () => mediaSupported,
   });
@@ -41,6 +42,14 @@ async function setup(rates = [rate('GroundAdvantage', 751), rate('Priority', 923
 }
 
 describe('website / extension shared pricing boundary', () => {
+  it.each([0, 20, 40, 50, 100])('returns identical Book prices to the website and actual extension client at %s percent', async (discount) => {
+    const { fetcher, client } = await setup([rate('GroundAdvantage', 600)], false, discount);
+    const website = await fetchRateEstimate({ ...base, shipmentCategory: 'book' }, fetcher);
+    const address = { ...emptyAddress(), fullName: 'Test', addressLine1: '1 Main', city: 'Addison', state: 'IL', zipCode: '60101', country: 'US' };
+    const extension = await client.getPricingQuote(crypto.randomUUID(), 'best', address, { ...address, zipCode: '48047', state: 'MI' }, { weight: '3', length: '14', width: '10', height: '5', preset: 'book-poly-mailer' });
+    expect(website.estimate.customerPriceCents).toBe(extension.customerPriceCents);
+    expect(website.estimate.customerPriceCents).toBe(Math.round(600 * (100 - discount) / 100));
+  });
   it.each([
     ['A: standard Best Rate', {}],
     ['B: lightweight', { weight: 0.5 }],

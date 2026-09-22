@@ -66,15 +66,17 @@ export class LiveEasyPostPricingService implements PricingService {
     },
   ) {
     if (!Number.isFinite(discountPercent) || discountPercent < 0 || discountPercent >= 100) throw new Error('SHIPDIME_DISCOUNT_PERCENT must be between 0 and 99.');
+    if (bookConfig.discountPercent != null && (!Number.isFinite(bookConfig.discountPercent) || bookConfig.discountPercent < 0 || bookConfig.discountPercent > 100))
+      throw new Error('BOOK_DISCOUNT_PERCENT must be a numeric percentage from 0 through 100.');
   }
-  private option(rate: ReferenceRate): ShippingRateOption {
-    const customer = Math.round(rate.rateCents * (100 - this.discountPercent) / 100);
+  private option(rate: ReferenceRate, discountPercent = this.discountPercent): ShippingRateOption {
+    const customer = Math.round(rate.rateCents * (100 - discountPercent) / 100);
     const savings = rate.rateCents - customer;
     return { quoteId: crypto.randomUUID(), rateId: rate.providerRateId, shipmentId: rate.providerShipmentId,
       carrier: rate.carrier, serviceCode: rate.serviceCode, serviceName: rate.serviceName,
       benchmarkPriceCents: rate.rateCents, benchmarkDisplayAmount: money(rate.rateCents),
       customerPriceCents: customer, customerDisplayAmount: money(customer), savingsCents: savings,
-      savingsDisplayAmount: money(savings), savingsPercent: this.discountPercent,
+      savingsDisplayAmount: money(savings), savingsPercent: discountPercent,
       deliveryDays: rate.deliveryDays, deliveryDate: rate.deliveryDate, guaranteed: rate.guaranteed };
   }
   async getQuote(input: PricingQuoteInput): Promise<PricingQuote> {
@@ -160,7 +162,8 @@ export class LiveEasyPostPricingService implements PricingService {
       resolvedServiceName = standardService.displayName;
     }
     const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
-    const benchmark = this.option(selectedRate);
+    const appliedDiscountPercent = shipmentCategory === 'book' ? this.bookConfig.discountPercent ?? this.discountPercent : this.discountPercent;
+    const benchmark = this.option(selectedRate, appliedDiscountPercent);
     if (shipmentCategory === 'book') {
       const customerPriceCents = bookCustomerPriceCents!;
       console.log('BOOK_PRICE_CALCULATION', {
@@ -170,14 +173,19 @@ export class LiveEasyPostPricingService implements PricingService {
         selectedService: resolvedServiceName, selectedServiceCode: selectedRate.serviceCode,
         selectedLabelTypeId: resolvedLabelTypeId, providerCarrier: selectedRate.providerCarrier,
         referenceRateCents: selectedRate.rateCents,
-        providerCostCentsUsedByFormula: isMediaMail ? selectedRate.rateCents : null,
+        providerCostCentsUsedByFormula: isMediaMail && this.bookConfig.discountPercent == null ? selectedRate.rateCents : null,
         shipAirProviderCostCents: null,
         costSource: 'Reference rate; ShipAir cost is not fetched during quoting',
         normalCalculatedPrice: benchmark.customerPriceCents,
-        discountPercent: this.discountPercent,
+        discountPercent: appliedDiscountPercent,
+        BOOK_DISCOUNT_PERCENT: this.bookConfig.discountPercent ?? null,
+        bookPricingMode: this.bookConfig.discountPercent == null ? 'legacy' : 'percentage',
+        discountedBookCandidateCents: benchmark.customerPriceCents,
+        actualProviderCostFloorCents: null,
+        marginFloorGuaranteed: false,
         BOOK_TARGET_PRICE_CENTS: this.bookConfig.targetPriceCents,
         BOOK_MIN_MARGIN_CENTS: this.bookConfig.minimumMarginCents,
-        minimumSellPrice: isMediaMail ? selectedRate.rateCents + this.bookConfig.minimumMarginCents : null,
+        minimumSellPrice: isMediaMail && this.bookConfig.discountPercent == null ? selectedRate.rateCents + this.bookConfig.minimumMarginCents : null,
         customerPriceCents, fallbackServiceUsed: !isMediaMail, fallbackPricingUsed: false,
       });
       benchmark.customerPriceCents = customerPriceCents;

@@ -22,7 +22,7 @@ export function rateRequest(input: RateInputs) {
 function isEstimate(value: unknown): value is RateEstimate {
   if (!value || typeof value !== 'object') return false;
   const quote = value as RateEstimate;
-  return Number.isSafeInteger(quote.customerPriceCents) && quote.customerPriceCents > 0 &&
+  return Number.isSafeInteger(quote.customerPriceCents) && quote.customerPriceCents >= 0 &&
     typeof quote.customerDisplayAmount === 'string' && /^\$\d+\.\d{2}$/.test(quote.customerDisplayAmount) &&
     typeof quote.serviceName === 'string' && quote.serviceName.length > 0 &&
     Number.isInteger(quote.labelTypeId) && quote.labelTypeId > 0 && quote.currency === 'usd';

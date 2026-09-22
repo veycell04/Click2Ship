@@ -2,6 +2,18 @@ import { describe, expect, it, vi } from 'vitest';
 import { assertBackendConfig, loadConfig, paymentRedirectUrls } from '../src/config/env.js';
 
 describe('backend environment validation', () => {
+  it('leaves Book discount unset for backward compatibility', () => {
+    expect(loadConfig({}).bookDiscountPercent).toBeNull();
+  });
+  it.each(['0', '20', '40', '50', '100', '12.5', '0.40'])('accepts Book percentage %s literally', (value) => {
+    const config = loadConfig({ BOOK_DISCOUNT_PERCENT: value, SHIPAIR_API_KEY: 'test', CLICK2SHIP_EXTENSION_ID: 'test', EASYPOST_API_KEY: 'test' });
+    expect(config.bookDiscountPercent).toBe(Number(value));
+    expect(config.shipDimeDiscountPercent).toBe(20);
+    expect(() => assertBackendConfig(config)).not.toThrow();
+  });
+  it.each(['', ' ', '-1', '100.01', 'NaN', 'Infinity', 'forty', '40%', '0x28'])('rejects invalid Book percentage %j', (value) => {
+    expect(() => assertBackendConfig(loadConfig({ BOOK_DISCOUNT_PERCENT: value }))).toThrow('BOOK_DISCOUNT_PERCENT');
+  });
   it('prefers SHIPDIME_DISCOUNT_PERCENT and temporarily supports the legacy name', () => {
     expect(loadConfig({ SHIPDIME_DISCOUNT_PERCENT: '30', CLICK2SHIP_DISCOUNT_PERCENT: '20' })
       .shipDimeDiscountPercent).toBe(30);
