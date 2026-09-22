@@ -16,7 +16,7 @@ describe('public calculator', () => {
   it('renders an indexable form, default Best Rate, disclosures, and no invented Media Mail option without fetching', () => {
     const fetch = vi.fn(); vi.stubGlobal('fetch', fetch);
     const html = renderToStaticMarkup(<RateCalculator />);
-    expect(html).toContain('Check Your Shipping Rate');
+    expect(html).toContain('Find Your Shipping Deal');
     expect(html).toContain('Check My Rate');
     expect(html).toContain('value="best" selected=""');
     expect(html).toContain('USPS Ground Advantage');

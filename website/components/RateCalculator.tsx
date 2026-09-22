@@ -43,7 +43,7 @@ export function RateCalculator() {
   return (
     <section className="section rate-calculator-section" id="rate-calculator" aria-labelledby="calculator-title">
       <div className="shell">
-        <div className="section-heading"><p className="eyebrow">Shipping rate calculator</p><h2 id="calculator-title">Check Your Shipping Rate</h2><p>Before you buy your next shipping label, check ShipDime’s price.</p><p>Explore discount shipping rates when looking for cheap shipping labels. No login or extension needed to check your shipping price.</p></div>
+        <div className="section-heading"><p className="eyebrow">Shipping rate calculator</p><h2 id="calculator-title">Find Your Shipping Deal</h2><p>Enter your shipment details once and let ShipDime search the available shipping options for you.</p><p>Explore discount shipping rates when looking for cheap shipping labels. No login or extension needed to check your shipping price.</p></div>
         <div className="rate-calculator-grid">
           <form onSubmit={submit} onChange={() => { setResult(null); setError(''); setCopied(''); }} aria-busy={busy}>
             <fieldset disabled={busy}>

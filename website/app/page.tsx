@@ -3,16 +3,14 @@ import { ChromeCta } from '../components/ChromeCta';
 import { GroundAdvantageSpotChecks } from '../components/GroundAdvantageSpotChecks';
 import { RateCalculator } from '../components/RateCalculator';
 
-const title = 'Cheap Shipping Labels & Discount Shipping Rates | ShipDime';
-const description = 'Check ShipDime before buying your next shipping label. Access discounted U.S. shipping rates with no monthly subscription and create labels directly from your browser.';
+const title = 'Find Shipping Deals & Discount Shipping Rates | ShipDime';
+const description = 'Search available shipping options in one place with ShipDime. Check your shipping rate, find a better deal for your shipment, and create your label without manually shopping around.';
 export const metadata = pageMetadata({ title: title, description: description, path: '/', type: 'website' });
 
 const steps = [
-  ['01', 'Highlight an address', 'Select the shipping address where you already work.'],
-  ['02', 'Right-click and open ShipDime', 'Start a new shipment without leaving the page.'],
-  ['03', 'Review shipment details', 'Confirm the recipient, sender, package weight, and dimensions.'],
-  ['04', 'Choose and review', 'Select your label type and see the price before checkout.'],
-  ['05', 'Pay and create your label', 'Complete secure payment, then access your label and tracking number.'],
+  ['01', 'Enter Your Shipment', 'Add the ZIP codes, package size, and weight.'],
+  ['02', 'ShipDime Searches', 'ShipDime checks the available shipping options for your shipment.'],
+  ['03', 'Get Your Deal', 'Review the best available option and create your shipping label.'],
 ];
 
 const values = [
@@ -30,10 +28,10 @@ export default function Home() {
       <section className="hero">
         <div className="shell hero-grid">
           <div>
-            <p className="eyebrow">ShipDime · Discount shipping labels</p>
-            <h1>Before You Buy Your Next Shipping Label, Check ShipDime’s Price.</h1>
-            <p className="hero-copy">Get deeply discounted shipping rates with no monthly subscription. Compare your rate before you buy.</p>
-            <div className="actions"><a className="button primary" href="#rate-calculator">Check Your Rate</a><ChromeCta className="button secondary" /></div>
+            <p className="eyebrow">ShipDime · Find your shipping deal</p>
+            <h1>Stop Searching for Shipping Deals.<br />ShipDime Does It for You.</h1>
+            <p className="hero-copy">Enter your shipment once. ShipDime searches available shipping options and helps you find the best deal for your shipment.</p>
+            <div className="actions"><a className="button primary" href="#rate-calculator">Check My Rate</a><ChromeCta className="button secondary" label="Get ShipDime for Chrome" /></div>
             <p className="microcopy"><a href="#how-it-works">See how it works</a>. Actual rates and savings vary by shipment.</p>
           </div>
           <div className="home-price-summary"><p className="eyebrow">Save on shipping labels</p><h2>No monthly subscription.</h2><p>Compare shipping label rates before checkout, including available USPS shipping labels.</p><p className="microcopy">Your shipment. Available rates. Your choice.</p></div>
@@ -42,9 +40,13 @@ export default function Home() {
 
       <RateCalculator />
 
+      <section className="section" id="how-it-works">
+        <div className="shell"><div className="section-heading"><p className="eyebrow">How ShipDime finds your deal</p><h2>One Search. One Place. A Better Way to Find Your Shipping Rate.</h2><p>Compare the shipping options available through ShipDime, then review your rate before you buy.</p></div><ol className="steps">{steps.map(([number, title, copy]) => <li key={number}><span>{number}</span><h3>{title}</h3><p>{copy}</p></li>)}</ol></div>
+      </section>
+
       <section className="section home-savings" aria-labelledby="savings-title">
         <div className="shell">
-          <div className="section-heading"><p className="eyebrow">Check before you buy</p><h2 id="savings-title">Why Pay More for the Same Shipment?</h2><p>Shipping rates can vary significantly between providers. Check ShipDime before buying your next label and see what you could save.</p></div>
+          <div className="section-heading"><p className="eyebrow">Check before you buy</p><h2 id="savings-title">Why Shop Around?</h2><p>Shipping prices can vary. Instead of repeatedly entering the same shipment on different websites, check ShipDime first and see what rate is available for your package.</p></div>
           <p className="home-savings-claim">Save up to 30% in tested rate comparisons.</p>
           <p className="spot-check-disclosure">Based on selected rate comparisons performed by ShipDime. Actual savings vary by package, route, service, and available rates. ShipDime does not guarantee savings on every shipment.</p>
           <div className="home-rate-examples" aria-labelledby="rate-examples-title">
@@ -62,26 +64,23 @@ export default function Home() {
               </article>
             </div>
             <p className="microcopy">Rates change. Check today&apos;s price for your shipment.</p>
-            <a className="button primary" href="#rate-calculator">Check Your Rate</a>
+            <a className="button primary" href="#rate-calculator">Check My Rate</a>
           </div>
         </div>
       </section>
 
       <section className="section home-spot-checks"><div className="shell"><GroundAdvantageSpotChecks heading="More tested shipping rate comparisons" compact /></div></section>
 
-      <section className="section home-about">
-        <div className="shell trust-grid">
-          <div><p className="eyebrow">What is ShipDime?</p><h2>Create shipping labels directly from any address.</h2></div>
-          <div><p>Select a recipient address on a webpage to start a U.S. domestic shipment in Chrome. Review the extracted details before buying a label. You do not need a separate sales-channel integration for this workflow.</p><p>Review <a href="/about">what ShipDime is</a>, learn how to <a href="/create-shipping-label-from-website">create a label from a website</a>, or visit the <a href="/compare">shipping-platform comparison hub</a>.</p></div>
-        </div>
+      <section className="section trust-section" aria-labelledby="book-title">
+        <div className="shell trust-grid"><div><p className="eyebrow">For book sellers</p><h2 id="book-title">Shipping Books? Check ShipDime First.</h2></div><div><p>Whether you&apos;re shipping one book or fulfilling regular book orders, check the available ShipDime rate before buying your label elsewhere.</p><p>Choose Book / Poly Mailer in the calculator. Media Mail eligibility depends on package contents.</p><a className="button primary" href="#rate-calculator">Check Book Rate</a></div></div>
       </section>
 
       <section className="section demo-section" aria-labelledby="demo-title">
         <div className="shell demo-layout">
           <div className="demo-heading">
             <p className="eyebrow">Select. Right-click. Ship.</p>
-            <h2 id="demo-title">Save Money. Then Save Time.</h2>
-            <p>ShipDime also makes label creation faster. Select a customer&apos;s address on a webpage, right-click, and ShipDime can fill the shipping details for you.</p>
+            <h2 id="demo-title">Found Your Rate? Ship Even Faster.</h2>
+            <p>The ShipDime Chrome extension can make label creation faster too. When a recipient address is available as selectable text in your browser, select it, right-click, and ShipDime can help fill the shipping details for you.</p>
           </div>
           <div className="demo-video-grid">
             <div className="demo-video-card">
@@ -123,8 +122,13 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section" id="how-it-works">
-        <div className="shell"><div className="section-heading"><p className="eyebrow">How it works</p><h2>From highlighted address to shipping label.</h2><p>Five clear steps. No tab-hopping or repetitive entry.</p></div><ol className="steps">{steps.map(([number, title, copy]) => <li key={number}><span>{number}</span><h3>{title}</h3><p>{copy}</p></li>)}</ol></div>
+
+
+      <section className="section home-about">
+        <div className="shell trust-grid">
+          <div><p className="eyebrow">What is ShipDime?</p><h2>Create labels from selectable addresses in your browser.</h2></div>
+          <div><p>Select a recipient address on a webpage to start a U.S. domestic shipment in Chrome. Review the extracted details before buying a label. You do not need a separate sales-channel integration for this workflow.</p><p>Review <a href="/about">what ShipDime is</a>, learn how to <a href="/create-shipping-label-from-website">create a label from a website</a>, or visit the <a href="/compare">shipping-platform comparison hub</a>.</p></div>
+        </div>
       </section>
 
       <section className="section product-section" id="product">
@@ -137,7 +141,7 @@ export default function Home() {
 
       <section className="section"><div className="shell"><div className="section-heading"><p className="eyebrow">Seller questions</p><h2>Practical guides for individual and disconnected orders.</h2><p>Direct answers about label creation, address entry, marketplace connections, and shipping prices.</p></div><div className="comparison-card-grid"><article><h3>Create your own shipping label</h3><p>Learn the sender, recipient, package, service, purchase, and printing steps.</p><a href="/how-to-create-your-own-shipping-label">Read the guide →</a></article><article><h3>Stop copying address fields</h3><p>Compare repeated field transfer with ShipDime&apos;s select, right-click, and review workflow.</p><a href="/stop-copy-pasting-shipping-addresses">See the workflow →</a></article><article><h3>Ship without marketplace integration</h3><p>Understand when selectable recipient text can start a label without a dedicated channel connection.</p><a href="/shipping-label-without-marketplace-integration">Learn how →</a></article><article><h3>Compare shipping-label prices</h3><p>See what affects a rate and how to evaluate conditional savings without cheapest-price guarantees.</p><a href="/cheap-shipping-labels">Review pricing factors →</a></article></div></div></section>
 
-      <section className="section final-cta"><div className="shell"><p className="eyebrow">Select. Right-click. Ship.</p><h2>Start with the address already on your screen.</h2><p>Learn more about the <a href="/shipping-label-chrome-extension">ShipDime Chrome extension</a> or create your next U.S. domestic label.</p><ChromeCta /></div></section>
+      <section className="section final-cta"><div className="shell"><p className="eyebrow">Find your shipping deal</p><h2>Check your next shipment in one place.</h2><p>Start with a rate check, then use the <a href="/shipping-label-chrome-extension">ShipDime Chrome extension</a> to create and purchase your label.</p><a className="button primary" href="#rate-calculator">Check My Rate</a></div></section>
     </>
   );
 }

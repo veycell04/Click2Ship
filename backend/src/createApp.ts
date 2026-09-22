@@ -16,6 +16,7 @@ import {
   type PricingService,
 } from './services/pricingService.js';
 import { RateProviderError } from './services/rateProvider.js';
+import { safeDatabaseCode, classifyProviderFailure } from './services/rateDiagnostics.js';
 import type { OrderRecord, PaymentProvider } from './types/payments.js';
 import type { LabelProvider } from './types/shipping.js';
 import { safeDatabaseError } from './services/postgresRepositories.js';
@@ -205,13 +206,26 @@ void trackPurchase(purchase);
       try {
         const allowed = await publicRateLimiter.allow(publicRateClientIp(request.ip, request.headers['x-forwarded-for']));
         if (!allowed) return reply.header('Retry-After', '60').code(429).send({ success: false, error: 'RATE_LIMITED' });
-      } catch {
+      } catch (error) {
+        const databaseCode = safeDatabaseCode(error);
+        request.log.error({ stage: 'rate-limit', reason: 'RATE_LIMIT_STORE_UNAVAILABLE', databaseCode,
+          migrationRequired: databaseCode === '42P01' ? '005_public_rate_limits.sql' : null }, 'PUBLIC_RATE_FAILED');
         return reply.code(503).send({ success: false, error: 'RATE_UNAVAILABLE' });
       }
       try {
         const { input, service } = parsePublicRateInput(request.body);
-        if (!pricingService.getEstimate) return reply.code(503).send({ success: false, error: 'RATE_UNAVAILABLE' });
+        request.log.info({ selectionId: input.selectionId, stage: 'validated', addressMode: 'postal-only',
+          originZip: input.sender.zip, destinationZip: input.recipient.zip, country: 'US',
+          weightLb: input.weight, weightOz: input.weight * 16, length: input.length, width: input.width, height: input.height,
+          shipmentCategory: input.shipmentCategory, service }, 'PUBLIC_RATE_REQUEST');
+        if (!pricingService.getEstimate) {
+          request.log.error({ stage: 'pricing', reason: 'ESTIMATE_ENGINE_UNAVAILABLE' }, 'PUBLIC_RATE_FAILED');
+          return reply.code(503).send({ success: false, error: 'RATE_UNAVAILABLE' });
+        }
         const result = await pricingService.getEstimate(input, service);
+        request.log.info({ selectionId: input.selectionId, labelTypeId: result.quote.labelTypeId,
+          service: result.quote.serviceName, customerPriceCents: result.quote.customerPriceCents,
+          candidateCount: result.options.length }, 'PUBLIC_RATE_SUCCESS');
         const display = (quote: Awaited<ReturnType<PricingService['getQuote']>>) => ({
           labelTypeId: quote.labelTypeId, serviceName: quote.serviceName,
           customerPriceCents: quote.customerPriceCents, customerDisplayAmount: quote.customerDisplayAmount,
@@ -219,6 +233,15 @@ void trackPurchase(purchase);
         });
         return { success: true, estimate: display(result.quote), options: result.options.map(display) };
       } catch (error) {
+        const reason = error instanceof DomesticShippingOnlyError ? 'INVALID_ADDRESS'
+          : error instanceof RequestValidationError
+            ? ['originZip', 'destinationZip'].includes(error.field) ? 'INVALID_ADDRESS'
+              : ['weight', 'length', 'width', 'height'].includes(error.field) ? 'INVALID_PACKAGE' : 'UNSUPPORTED_SERVICE'
+            : error instanceof UnsupportedPricingServiceError ? 'UNSUPPORTED_SERVICE'
+              : error instanceof PricingRateUnavailableError ? 'NO_ELIGIBLE_RATE'
+                : error instanceof RateProviderError ? classifyProviderFailure({ code: (error.diagnostic as { reason?: string } | undefined)?.reason }) : 'PROVIDER_ERROR';
+        request.log.warn({ reason, stage: error instanceof RequestValidationError ? 'validation' : 'pricing',
+          providerStatus: error instanceof RateProviderError ? error.statusCode : null }, 'PUBLIC_RATE_FAILED');
         if (error instanceof DomesticShippingOnlyError) return reply.code(422).send(DOMESTIC_SHIPPING_ONLY_RESPONSE);
         if (error instanceof RequestValidationError) return reply.code(422).send({ success: false, error: 'VALIDATION_ERROR', field: error.field });
         // Never expose provider, persistence, or configuration diagnostics publicly.

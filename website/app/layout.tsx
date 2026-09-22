@@ -33,7 +33,7 @@ const softwareSchema = {
   softwareRequirements: 'Google Chrome browser',
   installUrl: CHROME_STORE_URL,
   url: siteUrl,
-  description: 'ShipDime is a Chrome extension for U.S. online sellers that helps create shipping labels from recipient addresses selected directly on webpages.',
+  description: 'ShipDime helps users search available U.S. shipping options and compare rates in one place. Its Chrome extension helps create and purchase labels, with optional address extraction from selectable webpage text.',
   publisher: {
     '@id': `${siteUrl}/#organization`,
   },

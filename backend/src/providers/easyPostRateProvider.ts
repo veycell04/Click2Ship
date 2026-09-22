@@ -1,6 +1,7 @@
 import EasyPostClientImport, { type IShipment, type IShipmentCreateParameters } from '@easypost/api';
 import type { RateProvider, RateRequest, ReferenceRate, SupportedCarrier } from '../services/rateProvider.js';
 import { RateProviderError } from '../services/rateProvider.js';
+import { classifyProviderFailure } from '../services/rateDiagnostics.js';
 
 export interface EasyPostShipmentClient { create(parameters: IShipmentCreateParameters): Promise<IShipment>; }
 const EasyPostClient = EasyPostClientImport as unknown as new (apiKey: string, options?: { timeout?: number }) => { Shipment: EasyPostShipmentClient };
@@ -85,13 +86,26 @@ export class EasyPostRateProvider implements RateProvider {
           deliveryDate: rate.delivery_date || null, guaranteed: rate.delivery_date_guaranteed === true }];
       });
       const cheapest = [...rates].sort((a, b) => a.rateCents - b.rateCents)[0];
+      console.info('REFERENCE_RATE_DIAGNOSTIC', {
+        selectionId: input.selectionId, provider: 'easypost',
+        addressMode: input.sender.address1 && input.recipient.address1 ? 'full-address' : 'postal-only',
+        weightLb: input.weight, weightOz: poundsToOunces(input.weight),
+        totalRates: rawRates.length, acceptedRates: rates.length,
+        rejectedRates: rawRates.length - rates.length,
+        reason: rawRates.length === 0 ? 'NO_PROVIDER_RATE' : rates.length === 0 ? 'NO_ELIGIBLE_RATE' : null,
+        // A carrier failure does not invalidate other carriers' usable rates.
+        carrierIssues: (shipment.messages ?? []).map((message) => ({ reason: classifyProviderFailure(message) })),
+        services: rates.map((rate) => ({ carrier: rate.carrier, service: rate.serviceCode, referenceCents: rate.rateCents })),
+      });
       console.log('RATE_SHOP_RESULT', { totalRates: rawRates.length, supportedRates: rates.length,
         cheapest: cheapest ? { carrier: cheapest.carrier, service: cheapest.serviceCode,
           rateCents: cheapest.rateCents } : null });
       return rates;
     } catch (error) {
       const status = normalizedStatus(error);
-      throw new RateProviderError('Unable to retrieve shipping rates.', status, status === 504 ? 'RATE_TIMEOUT' : 'RATE_PROVIDER_ERROR');
+      const reason = classifyProviderFailure(error);
+      console.warn('REFERENCE_RATE_FAILED', { selectionId: input.selectionId, reason, status });
+      throw new RateProviderError('Unable to retrieve shipping rates.', status, status === 504 ? 'RATE_TIMEOUT' : 'RATE_PROVIDER_ERROR', { reason });
     }
   }
 }
