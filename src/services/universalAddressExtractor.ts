@@ -60,7 +60,9 @@ const states: Record<string, string> = {
   WYOMING: 'WY',
 };
 const stateNames = Object.keys(states).sort((a, b) => b.length - a.length);
+const stateAbbreviations = new Set(Object.values(states));
 const zipPattern = /\b\d{5}(?:-\d{4})?\b/;
+const stateZipPattern = /\b([A-Z]{2})\s+(\d{5}(?:-\d{4})?)\b/gi;
 const phonePattern =
   /(?:\(\+?1\)|\+?1)?[\s.-]*\(?\d{3}\)?[\s.-]*\d{3}[\s.-]*\d{4}(?:\s*(?:ext\.?|x)\s*\d+)?/i;
 const streetPattern =
@@ -89,10 +91,17 @@ function findState(text: string): { state: string; token: string } | null {
   for (const name of stateNames) {
     if (new RegExp(`\\b${name}\\b`, 'i').test(upper)) return { state: states[name], token: name };
   }
-  const abbreviations = new Set(Object.values(states));
   const matches = upper.match(/\b[A-Z]{2}\b/g) ?? [];
-  const abbreviation = matches.find((value) => abbreviations.has(value));
+  const abbreviation = matches.find((value) => stateAbbreviations.has(value));
   return abbreviation ? { state: abbreviation, token: abbreviation } : null;
+}
+
+function contextualZip(text: string): string {
+  const matches = [...text.matchAll(stateZipPattern)]
+    .filter((match) => stateAbbreviations.has(match[1]!.toUpperCase()));
+  return matches.find((match) => match[2]!.includes('-'))?.[2]
+    ?? matches[0]?.[2]
+    ?? '';
 }
 
 function structuralExtraction(rawText: string): AddressExtractionResult {
@@ -103,12 +112,14 @@ function structuralExtraction(rawText: string): AddressExtractionResult {
     .map((line) => line.replace(phonePattern, '').trim())
     .filter(Boolean);
   const flattened = lines.join(' ').replace(/\s+/g, ' ').trim();
-  result.zip = flattened.match(zipPattern)?.[0] ?? '';
-
   const streetLineIndex =
     lines.length > 1 ? lines.findIndex((line) => streetPattern.test(line)) : -1;
   const streetSource = streetLineIndex >= 0 ? lines[streetLineIndex] : flattened;
   const streetMatch = streetSource.match(streetPattern);
+  const textWithoutStreet = streetMatch ? flattened.replace(streetMatch[0], ' ') : flattened;
+  result.zip = contextualZip(flattened)
+    || textWithoutStreet.match(zipPattern)?.[0]
+    || '';
   if (!streetMatch) return result;
 
   const streetAndUnit = streetSource.slice(streetMatch.index ?? 0);
@@ -131,7 +142,7 @@ function structuralExtraction(rawText: string): AddressExtractionResult {
       : streetAndUnit.slice(
           (unitMatch?.index ?? streetMatch[0].length) + (unitMatch?.[0].length ?? 0),
         );
-  locationText = locationText.replace(zipPattern, '').replace(countryPattern, '').trim();
+  locationText = locationText.replace(result.zip, '').replace(countryPattern, '').trim();
   const stateMatch = findState(locationText);
   if (stateMatch) {
     result.state = stateMatch.state;

@@ -18,6 +18,24 @@ RALEIGH, NC 27609-2880`;
 
 describe('UniversalAddressExtractor', () => {
   it.each([
+    ['Jamison Computers 24233 CREEKSIDE RD UNIT 101 VALENCIA, CA 91355-1737', {
+      fullName: 'Jamison Computers', address1: '24233 CREEKSIDE RD', address2: 'UNIT 101',
+      city: 'VALENCIA', state: 'CA', zip: '91355-1737', country: 'US',
+    }],
+    ['John Smith\n12345 Main St\nChicago, IL 60630', { zip: '60630' }],
+    ['Jane Doe\n60630 W Example Rd\nDallas, TX 75201', { zip: '75201' }],
+    ['ABC Company\n10001 West Street\nMiami, FL 33101-1234', { zip: '33101-1234' }],
+    ['John Smith\n12345 Main St\nChicago IL 60630', { zip: '60630' }],
+    ['ABC Company\n10001 West Street\nMiami FL 33101-1234', { zip: '33101-1234' }],
+    ['ABC Company\n10001 West Street\nMiami FL 33101-1234\nReference CA 90210', { zip: '33101-1234' }],
+  ] as const)('prefers the state-associated postal code over a five-digit street number: %s', async (input, expected) => {
+    await expect(universalAddressExtractor.extract(input)).resolves.toMatchObject(expected);
+  });
+  it('does not treat a five-digit street number as a ZIP when no postal code is present', async () => {
+    const result = await universalAddressExtractor.extract('John Smith\n12345 Main St\nChicago, IL');
+    expect(result.zip).toBe('');
+  });
+  it.each([
     ['multiline', mesut],
     ['flattened', mesut.replace(/\n/g, ' ')],
   ])('extracts the Mesut address from %s input', async (_format, input) => {
