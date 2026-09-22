@@ -4,6 +4,8 @@ import type { BackendConfig } from './config/env.js';
 import { createShipAirLabelPayload } from './providers/shipAirShippingProvider.js';
 import { parseCreateLabelRequest, RequestValidationError } from './schemas/createLabel.js';
 import { parsePricingQuoteInput } from './schemas/pricingQuote.js';
+import { parsePublicRateInput } from './schemas/publicRate.js';
+import { PublicRateLimiter, publicRateClientIp, type RateLimitDatabase } from './services/publicRateLimiter.js';
 import type { LabelRepository } from './services/labelRepository.js';
 import type { OrderRepository } from './services/orderRepository.js';
 import {
@@ -34,7 +36,7 @@ export async function buildApp(
   paymentProvider?: PaymentProvider,
   orderRepository?: OrderRepository,
   pricingService?: PricingService,
-  database?: { query(queryText: string): Promise<unknown> },
+  database?: RateLimitDatabase,
 ) {
   const app = Fastify({
     logger: { redact: ['req.headers.authorization', 'req.body.sender', 'req.body.recipient'] },
@@ -42,9 +44,15 @@ export async function buildApp(
   const configuredExtensionId = process.env.CLICK2SHIP_EXTENSION_ID || config.extensionId;
   const extensionOrigin = `chrome-extension://${configuredExtensionId}`;
   const labelTypeNames = new Map<number, string>();
+  const publicRateLimiter = new PublicRateLimiter(database, config.nodeEnv === 'production');
+  const websiteOrigins = new Set(['https://www.shipdime.com', 'https://shipdime.com']);
+  if (config.nodeEnv === 'development') websiteOrigins.add('http://localhost:3000');
 
   app.addHook('onRequest', async (request, reply) => {
-    void reply;
+    // Website origins only receive access to this read-only estimate endpoint.
+    if (websiteOrigins.has(request.headers.origin ?? '') && request.url.split('?')[0] !== '/api/pricing/estimate') {
+      return reply.code(403).send({ success: false, error: 'ORIGIN_NOT_ALLOWED' });
+    }
     if (config.nodeEnv === 'development') {
       console.log({
         method: request.method,
@@ -57,6 +65,7 @@ export async function buildApp(
   await app.register(cors, {
     origin(origin, callback) {
       const allowedOrigins = new Set([
+        ...websiteOrigins,
         extensionOrigin,
         'chrome-extension://bigbipcdmphkgaajnjkhjdnkidcmplmg',
         'chrome-extension://cdpgindjbfdohkljljodighadpeoeefh',
@@ -191,6 +200,31 @@ void trackPurchase(purchase);
   });
 
   if (pricingService) {
+    app.post('/api/pricing/estimate', { bodyLimit: 4096 }, async (request, reply) => {
+      reply.header('Cache-Control', 'no-store');
+      try {
+        const allowed = await publicRateLimiter.allow(publicRateClientIp(request.ip, request.headers['x-forwarded-for']));
+        if (!allowed) return reply.header('Retry-After', '60').code(429).send({ success: false, error: 'RATE_LIMITED' });
+      } catch {
+        return reply.code(503).send({ success: false, error: 'RATE_UNAVAILABLE' });
+      }
+      try {
+        const { input, service } = parsePublicRateInput(request.body);
+        if (!pricingService.getEstimate) return reply.code(503).send({ success: false, error: 'RATE_UNAVAILABLE' });
+        const result = await pricingService.getEstimate(input, service);
+        const display = (quote: Awaited<ReturnType<PricingService['getQuote']>>) => ({
+          labelTypeId: quote.labelTypeId, serviceName: quote.serviceName,
+          customerPriceCents: quote.customerPriceCents, customerDisplayAmount: quote.customerDisplayAmount,
+          currency: quote.currency, shipmentCategory: quote.shipmentCategory, isMediaMail: quote.isMediaMail,
+        });
+        return { success: true, estimate: display(result.quote), options: result.options.map(display) };
+      } catch (error) {
+        if (error instanceof DomesticShippingOnlyError) return reply.code(422).send(DOMESTIC_SHIPPING_ONLY_RESPONSE);
+        if (error instanceof RequestValidationError) return reply.code(422).send({ success: false, error: 'VALIDATION_ERROR', field: error.field });
+        // Never expose provider, persistence, or configuration diagnostics publicly.
+        return reply.code(503).send({ success: false, error: 'RATE_UNAVAILABLE' });
+      }
+    });
     app.post('/api/pricing/quote', async (request, reply) => {
       const candidate =
         request.body && typeof request.body === 'object'

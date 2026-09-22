@@ -44,6 +44,7 @@ export class InMemoryPricingQuoteRepository implements PricingQuoteRepository {
 export interface PricingService {
   getQuote(input: PricingQuoteInput): Promise<PricingQuote>;
   getStoredQuote(quoteId: string): Promise<StoredPricingQuote | null>;
+  getEstimate?(input: PricingQuoteInput, service: 'best' | 'ground' | 'priority'): Promise<{ quote: PricingQuote; options: PricingQuote[] }>;
 }
 export class PricingRateUnavailableError extends Error { constructor(message: string, readonly availableServices: string[]) { super(message); } }
 export class QuotePersistenceError extends Error { constructor(readonly diagnostic: unknown) { super('The shipping rates were calculated, but the quote could not be saved.'); } }
@@ -77,6 +78,26 @@ export class LiveEasyPostPricingService implements PricingService {
       deliveryDays: rate.deliveryDays, deliveryDate: rate.deliveryDate, guaranteed: rate.guaranteed };
   }
   async getQuote(input: PricingQuoteInput): Promise<PricingQuote> {
+    return this.calculateQuote(input);
+  }
+  // ZIP-only estimates share the quote engine, but cannot be purchased: no
+  // incomplete shipment is saved to the checkout quote repository.
+  async getEstimate(input: PricingQuoteInput, service: 'best' | 'ground' | 'priority') {
+    const availableRates = await this.rateProvider.getRates(input);
+    if (input.shipmentCategory === 'book' || service !== 'best') {
+      const quote = await this.calculateQuote(input, availableRates, false);
+      return { quote, options: [quote] };
+    }
+    const options: PricingQuote[] = [];
+    for (const labelTypeId of [120, 87]) {
+      try { options.push(await this.calculateQuote({ ...input, labelTypeId }, availableRates, false)); }
+      catch (error) { if (!(error instanceof PricingRateUnavailableError)) throw error; }
+    }
+    options.sort((a, b) => a.customerPriceCents - b.customerPriceCents);
+    if (!options[0]) throw new PricingRateUnavailableError('No eligible service is available.', []);
+    return { quote: options[0], options };
+  }
+  private async calculateQuote(input: PricingQuoteInput, referenceRates?: ReferenceRate[], persist = true): Promise<PricingQuote> {
     console.log('PRICING_STAGE_START');
     const shipmentCategory = input.shipmentCategory ?? 'standard';
     const selectedService = getShippingServiceMapping(input.labelTypeId);
@@ -84,7 +105,7 @@ export class LiveEasyPostPricingService implements PricingService {
       throw new UnsupportedPricingServiceError(`Unsupported label type: ${input.labelTypeId}`);
     if (shipmentCategory === 'book' && !this.bookConfig.enabled)
       throw new PricingRateUnavailableError('Book shipping is currently unavailable.', []);
-    const availableRates = await this.rateProvider.getRates(input);
+    const availableRates = referenceRates ?? await this.rateProvider.getRates(input);
     let selectedRate: ReferenceRate;
     let resolvedLabelTypeId: number;
     let resolvedServiceName: string;
@@ -176,7 +197,7 @@ export class LiveEasyPostPricingService implements PricingService {
     const quoteId = crypto.randomUUID();
     try {
       const normalizedInput = { ...structuredClone(input), labelTypeId: resolvedLabelTypeId, shipmentCategory };
-      await this.repository.save({ ...benchmark, quoteId, serviceName: resolvedServiceName,
+      if (persist) await this.repository.save({ ...benchmark, quoteId, serviceName: resolvedServiceName,
         input: normalizedInput, shipmentSnapshot: { ...normalizedInput, reference: `ShipDime-${input.selectionId}` },
         providerCarrier: selectedRate.providerCarrier, carrierRateCents: benchmark.benchmarkPriceCents,
         grossSpreadCents: benchmark.customerPriceCents - benchmark.benchmarkPriceCents,

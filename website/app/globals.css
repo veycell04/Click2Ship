@@ -29,6 +29,27 @@ h1 { max-width:760px; margin-bottom:24px; font-size:clamp(44px,6vw,72px); line-h
 .hero-copy { max-width:650px; margin-bottom:30px; color:var(--muted); font-size:19px; line-height:1.65; }
 .actions { display:flex; flex-wrap:wrap; gap:12px; }
 .microcopy { margin:18px 0 0; color:#748399; font-size:13px; }
+.home-price-summary { padding:36px; border:1px solid var(--line); border-radius:28px; background:#fff; box-shadow:0 30px 70px rgba(32,71,124,.13); }
+.home-price-summary > p:not(.eyebrow) { color:var(--muted); line-height:1.65; }
+.home-savings { background:var(--soft); }
+.home-savings .section-heading { margin-bottom:24px; }
+.home-savings-claim { color:var(--green); font-size:clamp(24px,3vw,34px); font-weight:800; letter-spacing:-.025em; }
+.home-rate-examples { margin-top:48px; }
+.home-rate-examples > p { color:var(--muted); line-height:1.6; }
+.home-rate-examples > .button { margin-top:20px; }
+.home-rate-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.home-rate-card { min-width:0; padding:28px; border:1px solid var(--line); border-radius:22px; background:#fff; box-shadow:0 10px 25px rgba(20,54,99,.045); }
+.home-rate-card h3 { font-size:16px; }
+.home-rate-prices { display:grid; grid-template-columns:1fr 1.2fr .8fr; align-items:center; gap:12px; margin:24px 0; }
+.home-rate-prices dt { color:var(--muted); font-size:13px; }
+.home-rate-prices dd { margin:8px 0 0; font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; }
+.home-rate-shipdime { padding:18px 12px; border-radius:14px; background:#eaf3ff; }
+.home-rate-shipdime dt { color:var(--blue-dark); font-weight:800; }
+.home-rate-shipdime dd { color:var(--blue-dark); font-size:36px; font-weight:850; }
+.home-rate-savings dd { color:var(--green); }
+.home-rate-package { margin-bottom:0; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:14px; line-height:1.65; }
+@media (max-width:1024px) { .home-rate-grid { grid-template-columns:minmax(0,1fr); } }
+@media (max-width:400px) { .home-rate-card { padding:18px; }.home-rate-prices { gap:8px; }.home-rate-prices dd { font-size:23px; }.home-rate-shipdime { padding:14px 8px; }.home-rate-shipdime dd { font-size:30px; } }
 .hero-mark { position:relative; min-height:390px; border:1px solid #cfddef; border-radius:28px; padding:62px 44px; background:rgba(255,255,255,.82); box-shadow:0 30px 70px rgba(32,71,124,.13); transform:rotate(1deg); }
 .hero-mark::before { content:"Selected address"; position:absolute; top:22px; left:28px; color:#718097; font-size:12px; font-weight:700; }
 .address-line { display:block; width:70%; height:22px; margin-bottom:18px; border-radius:7px; background:linear-gradient(90deg,#dcecff,#cde1ff); box-shadow:0 0 0 5px rgba(54,132,235,.08); }
@@ -36,6 +57,26 @@ h1 { max-width:760px; margin-bottom:24px; font-size:clamp(44px,6vw,72px); line-h
 .cursor-menu { position:absolute; right:27px; bottom:60px; width:240px; display:flex; flex-direction:column; padding:17px 19px; border:1px solid #d8e1ed; border-radius:13px; background:#fff; box-shadow:0 18px 45px rgba(28,52,84,.2); }
 .cursor-menu b { font-size:14px; }.cursor-menu span { margin-top:4px; color:var(--muted); font-size:12px; }
 .section { padding-block:104px; }
+.rate-calculator-section { scroll-margin-top:90px; }
+.rate-calculator-grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); gap:32px; align-items:start; }
+.rate-calculator-grid form,.rate-result { min-width:0; padding:28px; border:1px solid var(--line); border-radius:22px; background:var(--soft); }
+.rate-calculator-grid fieldset { min-width:0; border:0; margin:0; padding:0; }
+.rate-calculator-grid legend { padding:0; margin-bottom:20px; font-weight:800; }
+.rate-calculator-grid label { display:flex; flex-direction:column; gap:8px; min-width:0; font-size:14px; font-weight:650; }
+.rate-calculator-grid input,.rate-calculator-grid select { width:100%; min-width:0; min-height:48px; padding:10px; border:1px solid #b5c5db; border-radius:10px; background:#fff; color:var(--ink); font:inherit; font-size:16px; }
+.rate-calculator-grid :is(input,select,button,a):focus-visible { outline:3px solid var(--blue); outline-offset:3px; }
+.rate-field-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+.rate-dimensions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-block:20px; }
+.rate-calculator-grid .button { margin-top:20px; cursor:pointer; }
+.rate-calculator-grid button:disabled { opacity:.65; cursor:wait; }
+.rate-result { background:#fff; box-shadow:0 10px 25px rgba(20,54,99,.06); }
+.rate-result p { line-height:1.65; }
+.rate-result .rate-result-price { margin-bottom:12px; color:var(--blue-dark); font-size:clamp(48px,7vw,68px); font-weight:850; line-height:1.1; }
+.rate-result summary { cursor:pointer; font-weight:650; }
+.rate-result li { margin-block:12px; }
+.rate-result pre { white-space:pre-wrap; overflow-wrap:anywhere; font:inherit; font-size:14px; line-height:1.6; }
+@media (max-width:900px) { .rate-calculator-grid { grid-template-columns:minmax(0,1fr); } }
+@media (max-width:400px) { .rate-calculator-grid form,.rate-result { padding:20px; }.rate-field-grid { grid-template-columns:minmax(0,1fr); } }
 .demo-section { background:linear-gradient(180deg,#fff 0,#f5f9ff 100%); border-bottom:1px solid #e7eef7; }
 .demo-layout { display:flex; flex-direction:column; align-items:center; }
 .demo-heading { max-width:700px; margin-bottom:34px; text-align:center; }

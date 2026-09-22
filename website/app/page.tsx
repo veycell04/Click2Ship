@@ -1,9 +1,10 @@
 import { pageMetadata } from '../lib/metadata';
 import { ChromeCta } from '../components/ChromeCta';
 import { GroundAdvantageSpotChecks } from '../components/GroundAdvantageSpotChecks';
+import { RateCalculator } from '../components/RateCalculator';
 
-const title = 'Cheap Shipping Labels From Chrome | ShipDime';
-const description = 'Create U.S. shipping labels directly from Chrome, check discounted shipping rates, and skip repetitive address copy and paste with ShipDime.';
+const title = 'Cheap Shipping Labels & Discount Shipping Rates | ShipDime';
+const description = 'Check ShipDime before buying your next shipping label. Access discounted U.S. shipping rates with no monthly subscription and create labels directly from your browser.';
 export const metadata = pageMetadata({ title: title, description: description, path: '/', type: 'website' });
 
 const steps = [
@@ -29,21 +30,44 @@ export default function Home() {
       <section className="hero">
         <div className="shell hero-grid">
           <div>
-            <p className="eyebrow">ShipDime · Select. Right-click. Ship.</p>
-            <h1>Fast shipping labels. Seriously low prices.</h1>
-            <p className="hero-copy">Create U.S. shipping labels directly from Chrome. Compare available rates without copying each address field. Select. Right-click. Ship.</p>
-            <div className="actions"><ChromeCta /><a className="button secondary" href="/cheap-shipping-labels">Check Your Rate</a></div>
+            <p className="eyebrow">ShipDime · Discount shipping labels</p>
+            <h1>Before You Buy Your Next Shipping Label, Check ShipDime’s Price.</h1>
+            <p className="hero-copy">Get deeply discounted shipping rates with no monthly subscription. Compare your rate before you buy.</p>
+            <div className="actions"><a className="button primary" href="#rate-calculator">Check Your Rate</a><ChromeCta className="button secondary" /></div>
             <p className="microcopy"><a href="#how-it-works">See how it works</a>. Actual rates and savings vary by shipment.</p>
           </div>
-          <div className="hero-mark" aria-hidden="true"><span className="address-line wide" /><span className="address-line" /><span className="address-line short" /><div className="cursor-menu"><b>Create shipping label</b><span>with ShipDime</span></div></div>
+          <div className="home-price-summary"><p className="eyebrow">Save on shipping labels</p><h2>No monthly subscription.</h2><p>Compare shipping label rates before checkout, including available USPS shipping labels.</p><p className="microcopy">Your shipment. Available rates. Your choice.</p></div>
         </div>
       </section>
 
-      <section className="section home-spot-checks"><div className="shell"><GroundAdvantageSpotChecks heading="How low are ShipDime rates?" compact /></div></section>
+      <RateCalculator />
 
-      <section className="section commercial-callout">
-        <div className="shell commercial-callout-inner"><div><p className="eyebrow">Shipping label pricing</p><h2>Looking for cheaper shipping labels?</h2><p>Shipping costs add up. ShipDime lets you review your shipping price before purchasing and offers up to 20% savings on eligible rates.</p><small>Actual rates and savings vary by shipment. No provider is guaranteed to be cheapest for every label.</small></div><a className="button primary" href="/cheap-shipping-labels">Check Your Shipping Price</a></div>
+      <section className="section home-savings" aria-labelledby="savings-title">
+        <div className="shell">
+          <div className="section-heading"><p className="eyebrow">Check before you buy</p><h2 id="savings-title">Why Pay More for the Same Shipment?</h2><p>Shipping rates can vary significantly between providers. Check ShipDime before buying your next label and see what you could save.</p></div>
+          <p className="home-savings-claim">Save up to 30% in tested rate comparisons.</p>
+          <p className="spot-check-disclosure">Based on selected rate comparisons performed by ShipDime. Actual savings vary by package, route, service, and available rates. ShipDime does not guarantee savings on every shipment.</p>
+          <div className="home-rate-examples" aria-labelledby="rate-examples-title">
+            <h2 id="rate-examples-title">Real Rate Comparisons</h2>
+            <p>Selected examples, not universal rates.</p>
+            <div className="home-rate-grid">
+              <article className="home-rate-card">
+                <h3>Example 1</h3>
+                <dl className="home-rate-prices"><div><dt>Pirate Ship</dt><dd>$6.14</dd></div><div className="home-rate-shipdime"><dt>ShipDime</dt><dd>$5.26</dd></div><div className="home-rate-savings"><dt>Savings</dt><dd>14%</dd></div></dl>
+                <p className="home-rate-package">3 lb · 14 × 10 × 5 in<br />Addison, IL → Chesterfield, MI</p>
+              </article>
+              <article className="home-rate-card">
+                <h3>Example 2</h3>
+                <dl className="home-rate-prices"><div><dt>Compared rate</dt><dd>$9.78</dd></div><div className="home-rate-shipdime"><dt>ShipDime</dt><dd>$6.85</dd></div><div className="home-rate-savings"><dt>Savings</dt><dd>30%</dd></div></dl>
+              </article>
+            </div>
+            <p className="microcopy">Rates change. Check today&apos;s price for your shipment.</p>
+            <a className="button primary" href="#rate-calculator">Check Your Rate</a>
+          </div>
+        </div>
       </section>
+
+      <section className="section home-spot-checks"><div className="shell"><GroundAdvantageSpotChecks heading="More tested shipping rate comparisons" compact /></div></section>
 
       <section className="section home-about">
         <div className="shell trust-grid">
@@ -55,9 +79,9 @@ export default function Home() {
       <section className="section demo-section" aria-labelledby="demo-title">
         <div className="shell demo-layout">
           <div className="demo-heading">
-            <p className="eyebrow">Product demo</p>
-            <h2 id="demo-title">See ShipDime in action</h2>
-            <p>Highlight a shipping address and right-click ShipDime. Review your shipment, choose a service, and create your label.</p>
+            <p className="eyebrow">Select. Right-click. Ship.</p>
+            <h2 id="demo-title">Save Money. Then Save Time.</h2>
+            <p>ShipDime also makes label creation faster. Select a customer&apos;s address on a webpage, right-click, and ShipDime can fill the shipping details for you.</p>
           </div>
           <div className="demo-video-grid">
             <div className="demo-video-card">

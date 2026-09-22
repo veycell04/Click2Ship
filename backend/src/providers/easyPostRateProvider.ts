@@ -6,8 +6,8 @@ export interface EasyPostShipmentClient { create(parameters: IShipmentCreatePara
 const EasyPostClient = EasyPostClientImport as unknown as new (apiKey: string, options?: { timeout?: number }) => { Shipment: EasyPostShipmentClient };
 
 const address = (value: RateRequest['sender']) => ({
-  name: value.fullName, company: value.company || undefined, street1: value.address1,
-  street2: value.address2 || undefined, city: value.city, state: value.state, zip: value.zip,
+  name: value.fullName || undefined, company: value.company || undefined, street1: value.address1 || undefined,
+  street2: value.address2 || undefined, city: value.city || undefined, state: value.state || undefined, zip: value.zip,
   country: value.country || 'US', phone: value.phone || undefined,
 });
 
