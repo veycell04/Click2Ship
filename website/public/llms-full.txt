@@ -22,9 +22,9 @@ Workflow guide: https://www.shipdime.com/create-shipping-label-from-website
 
 ShipDime provides address extraction from user-selected text, editable shipment information, saved sender information, package details, service selection, quote review, and recent-label access. Users must check the details before buying a label. Address extraction is not guaranteed to be accurate for every input.
 
-## Book / Poly Mailer Shipping
+## Books & Media Shipping
 
-The Book / Poly Mailer workflow identifies book shipments while retaining shipping-service selection. Best Rate compares eligible options; a selected service is subject to availability. Availability of individual services depends on the shipment/provider. Do not infer Media Mail support from the book preset. Media Mail must be confirmed by the backend/provider and be eligible for the shipment before it can be offered. This document does not assert that Media Mail is currently available in production. Media Mail eligibility depends on package contents.
+The Books & Media workflow identifies books and other eligible media shipments while retaining shipping-service selection. Best Rate compares eligible options; a selected service is subject to availability. Availability of individual services depends on the shipment/provider. Do not infer Media Mail support from the category. Media Mail must be confirmed by the backend/provider and be eligible for the shipment before it can be offered. This document does not assert that Media Mail is currently available in production. Media Mail eligibility depends on package contents.
 
 ## Lightweight Shipments
 

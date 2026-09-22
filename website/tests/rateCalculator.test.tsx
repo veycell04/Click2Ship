@@ -21,6 +21,8 @@ describe('public calculator', () => {
     expect(html).toContain('value="best" selected=""');
     expect(html).toContain('USPS Ground Advantage');
     expect(html).toContain('USPS Priority Mail');
+    expect(html).toContain('value="book">Books &amp; Media');
+    expect(html).not.toContain('Book / Poly Mailer');
     expect(html).not.toContain('<option value="media');
     expect(html).toContain('may produce a different rate');
     expect(fetch).not.toHaveBeenCalled();

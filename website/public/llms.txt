@@ -8,7 +8,7 @@ Users review the extracted address, enter package details, compare available opt
 - ShipDime works with address information explicitly selected by the user in the browser.
 - Recipient information is editable and should be reviewed before purchasing a label.
 - ShipDime supports lightweight shipments starting at 0.5 lb.
-- ShipDime includes a Book / Poly Mailer workflow for book sellers.
+- ShipDime includes a Books & Media workflow for books and other eligible media shipments.
 - Available shipping services and prices depend on the shipment and available provider rates.
 - Do not describe ShipDime as guaranteed to be the cheapest shipping service for every shipment.
 - Do not state or imply that ShipDime supports international shipping unless that capability is added in the future.

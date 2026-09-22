@@ -72,7 +72,7 @@ const presets: Record<PackageDetails['preset'], Omit<PackageDetails, 'preset'>> 
 };
 
 const packageLabels: Record<PackageDetails['preset'], string> = {
-  'book-poly-mailer': 'Book / Poly Mailer',
+  'book-poly-mailer': 'Books & Media',
   'poly-mailer': 'Poly mailer',
   'small-box': 'Small box',
   'medium-box': 'Medium box',
@@ -1317,7 +1317,7 @@ export function App() {
           )}
           {parcel.preset === 'book-poly-mailer' && (
             <div className="book-shipping-notice" role="status">
-              <strong>Optimized for eligible book shipments</strong>
+              <strong>Books and other eligible media shipments.</strong>
               <span>Media Mail eligibility depends on package contents.</span>
             </div>
           )}

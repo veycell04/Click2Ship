@@ -72,7 +72,7 @@ export default function Home() {
       <section className="section home-spot-checks"><div className="shell"><GroundAdvantageSpotChecks heading="More tested shipping rate comparisons" compact /></div></section>
 
       <section className="section trust-section" aria-labelledby="book-title">
-        <div className="shell trust-grid"><div><p className="eyebrow">For book sellers</p><h2 id="book-title">Shipping Books? Check ShipDime First.</h2></div><div><p>Whether you&apos;re shipping one book or fulfilling regular book orders, check the available ShipDime rate before buying your label elsewhere.</p><p>Choose Book / Poly Mailer in the calculator. Media Mail eligibility depends on package contents.</p><a className="button primary" href="#rate-calculator">Check Book Rate</a></div></div>
+        <div className="shell trust-grid"><div><p className="eyebrow">For books and media</p><h2 id="book-title">Shipping Books or Media? Check ShipDime First.</h2></div><div><p>ShipDime offers special pricing for Books &amp; Media shipments. Check the available rate before buying your next label.</p><p>Choose Books &amp; Media in the calculator for books and other eligible media shipments.</p><a className="button primary" href="#rate-calculator">Check Books &amp; Media Rate</a></div></div>
       </section>
 
       <section className="section demo-section" aria-labelledby="demo-title">

@@ -52,11 +52,11 @@ export function RateCalculator() {
                 <label>From: Origin ZIP Code<input name="originZip" required inputMode="numeric" autoComplete="section-origin postal-code" pattern="[0-9]{5}(-[0-9]{4})?" maxLength={10} placeholder="60101" /></label>
                 <label>To: Destination ZIP Code<input name="destinationZip" required inputMode="numeric" autoComplete="section-destination postal-code" pattern="[0-9]{5}(-[0-9]{4})?" maxLength={10} placeholder="48047" /></label>
                 <label>Weight (lb)<input name="weight" type="number" inputMode="decimal" required min="0.1" max="70" step="any" placeholder="3" /></label>
-                <label>Package Type<select name="shipmentCategory" value={category} onChange={(event) => setCategory(event.target.value)}><option value="standard">Standard Package</option><option value="book">Book / Poly Mailer</option></select></label>
+                <label>Package Type<select name="shipmentCategory" value={category} onChange={(event) => setCategory(event.target.value)}><option value="standard">Standard Package</option><option value="book">Books &amp; Media</option></select></label>
               </div>
               <div className="rate-dimensions">{['Length', 'Width', 'Height'].map((dimension) => <label key={dimension}>{dimension} (in)<input name={dimension.toLowerCase()} type="number" inputMode="decimal" required min="0.000001" step="any" /></label>)}</div>
               <label>Shipping option<select name="service" defaultValue="best"><option value="best">Best Rate / Cheapest</option><option value="ground">USPS Ground Advantage</option><option value="priority">USPS Priority Mail</option></select></label>
-              {category === 'book' && <p className="microcopy">Media Mail eligibility depends on package contents. Best Rate considers Media Mail only when the backend confirms availability and provider support.</p>}
+              {category === 'book' && <p className="microcopy">Books and other eligible media shipments.</p>}
               <p className="microcopy">U.S. domestic shipping · 0.1–70 lb</p>
               <button className="button primary" type="submit" disabled={busy}>{busy ? 'Checking your ShipDime rate…' : 'Check My Rate'}</button>
             </fieldset>
